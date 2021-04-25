@@ -10,6 +10,7 @@ description = "Procedural macros for converting between enums and strings"
 proc-macro = true
 
 [dependencies]
+proc-macro2 = "1.0"
 syn = "1.0"
 quote = "1.0"
 
