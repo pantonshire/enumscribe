@@ -48,6 +48,7 @@ fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
 
     let mut variants = Vec::with_capacity(data.variants.len());
     let mut taken_names = HashSet::new();
+    let mut other_variant = false;
 
     for variant in data.variants {
         let variant_ident = variant.ident.to_string();
@@ -76,6 +77,18 @@ fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
                 span: variant_span,
             }
         } else if other {
+            if other_variant {
+                return Err(MacroError::new(
+                    format!(
+                        "cannot have multiple variants marked as {}",
+                        OTHER
+                    ),
+                    variant_span,
+                ));
+            }
+
+            other_variant = true;
+
             if let Some((_, name_span)) = name_opt {
                 return Err(MacroError::new(
                     format!(
@@ -120,8 +133,10 @@ fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
             if variant.fields.len() != 0 {
                 return Err(MacroError::new(
                     format!(
-                        "the variant {} must not have any fields",
-                        variant_ident
+                        "the variant {} must not have any fields\n\
+                         hint: if you do not want to remove {}\'s fields, try using \
+                         #[enumscribe(ignore)] for {}",
+                        variant_ident, variant_ident, variant_ident
                     ),
                     variant_span,
                 ));
