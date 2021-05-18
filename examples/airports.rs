@@ -5,12 +5,18 @@ extern crate enumscribe;
 enum Foo {
     #[enumscribe(str = "b", case_insensitive)]
     Baa,
-    #[enumscribe(ignore)]
+    // #[enumscribe(ignore)]
     Baz(),
     #[enumscribe(other)]
     Lorem { inner: String }
 }
 
 fn main() {
-    println!("Hello world!");
+    let foo = Foo::Baa;
+
+    // let s: String = foo.into();
+
+    let s: String = <_ as std::convert::Into<String>>::into(foo);
+
+    println!("Hello, {}!", s);
 }

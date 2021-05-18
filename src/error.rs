@@ -41,6 +41,18 @@ impl From<syn::Error> for MacroError {
     }
 }
 
+impl From<MacroError> for proc_macro::TokenStream {
+    fn from(err: MacroError) -> Self {
+        err.to_token_stream()
+    }
+}
+
+impl From<MacroError> for proc_macro2::TokenStream {
+    fn from(err: MacroError) -> Self {
+        err.to_token_stream2()
+    }
+}
+
 impl fmt::Display for MacroError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.message)

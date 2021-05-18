@@ -1,28 +1,28 @@
 use std::collections::HashSet;
 
-use proc_macro2::Span;
-use syn::{Attribute, Data, DataEnum, DeriveInput, Fields, LitStr};
-use syn::parse::{ParseBuffer, ParseStream};
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{quote, ToTokens};
+use syn::{DataEnum, Fields};
 use syn::spanned::Spanned;
 
-use crate::{CRATE_ATTR, NAME, OTHER, IGNORE, CASE_INSENSITIVE};
-use crate::attribute::*;
+use crate::{CASE_INSENSITIVE, CRATE_ATTR, IGNORE, NAME, OTHER};
+use crate::attribute::{Dict, Value};
 use crate::error::{MacroError, MacroResult};
 
-#[derive(Clone, Debug)]
-pub(crate) struct Enum {
-    pub(crate) variants: Vec<Variant>,
+#[derive(Clone)]
+pub(crate) struct Enum<'a> {
+    pub(crate) variants: Vec<Variant<'a>>,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct Variant {
-    pub(crate) ident: String,
-    pub(crate) v_type: VariantType,
+#[derive(Clone)]
+pub(crate) struct Variant<'a> {
+    pub(crate) data: &'a syn::Variant,
+    pub(crate) v_type: VariantType<'a>,
     pub(crate) span: Span,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) enum VariantType {
+#[derive(Clone)]
+pub(crate) enum VariantType<'a> {
     Ignore,
     Named {
         name: String,
@@ -30,7 +30,7 @@ pub(crate) enum VariantType {
         case_insensitive: bool,
     },
     Other {
-        field_name: Option<String> //use {} for constructor if Some, use () if None
+        field_name: Option<&'a Ident> //use {} for constructor if Some, use () if None
     },
 }
 
@@ -41,13 +41,47 @@ pub(crate) enum VariantConstructor {
     Brace,
 }
 
-pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
+impl<'a> Variant<'a> {
+    pub(crate) fn match_variant<F, G>(&self, named_fn: F, other_fn: G) -> Option<(TokenStream, TokenStream)>
+        where
+            F: Fn(&str) -> TokenStream,
+            G: Fn(TokenStream) -> TokenStream
+    {
+        let variant_ident = &self.data.ident;
+
+        match &self.v_type {
+            VariantType::Ignore => None,
+
+            VariantType::Named { name, constructor, .. } => {
+                let pattern = match constructor {
+                    VariantConstructor::None => quote! { #variant_ident },
+                    VariantConstructor::Paren => quote! { #variant_ident () },
+                    VariantConstructor::Brace => quote! { #variant_ident {} }
+                };
+                Some((pattern, named_fn(name)))
+            }
+
+            VariantType::Other { field_name } => {
+                let field_name_tokens = match field_name {
+                    Some(field_name) => field_name.to_token_stream(),
+                    None => quote! { __other_inner }
+                };
+                let pattern = match field_name {
+                    Some(_) => quote! { #variant_ident { #field_name_tokens } },
+                    None => quote! { #variant_ident (#field_name_tokens) }
+                };
+                Some((pattern, other_fn(field_name_tokens)))
+            }
+        }
+    }
+}
+
+pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
     let mut variants = Vec::with_capacity(data.variants.len());
     let mut taken_names = HashSet::new();
     let mut other_variant = false;
 
-    for variant in data.variants {
-        let variant_ident = variant.ident.to_string();
+    for variant in data.variants.iter() {
         let variant_span = variant.span();
 
         // Parse the `#[enumscribe(...)]` attributes for this variant into a single Dict
@@ -64,7 +98,7 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
 
         let scribe_variant = if ignore {
             Variant {
-                ident: variant_ident,
+                data: variant,
                 v_type: VariantType::Ignore,
                 span: variant_span,
             }
@@ -87,7 +121,7 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
                 return Err(MacroError::new(
                     format!(
                         "cannot use {} for variant {} because it is marked as {}",
-                        NAME, variant_ident, OTHER
+                        NAME, variant.ident.to_string(), OTHER
                     ),
                     name_span,
                 ));
@@ -98,7 +132,7 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
                 return Err(MacroError::new(
                     format!(
                         "the variant {} must have exactly one field because it is marked as {}",
-                        variant_ident, OTHER
+                        variant.ident.to_string(), OTHER
                     ),
                     variant_span,
                 ));
@@ -106,10 +140,10 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
 
             // Get the name of the variant's field (or None if it is unnamed)
             let field_name = variant.fields.iter().next()
-                .and_then(|field| field.ident.as_ref().map(|ident| ident.to_string()));
+                .and_then(|field| field.ident.as_ref());
 
             Variant {
-                ident: variant_ident,
+                data: variant,
                 v_type: VariantType::Other { field_name },
                 span: variant_span,
             }
@@ -130,6 +164,7 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
 
             // Return an error if the variant has any fields
             if variant.fields.len() != 0 {
+                let variant_ident = variant.ident.to_string();
                 return Err(MacroError::new(
                     format!(
                         "the variant {} must not have any fields\n\
@@ -152,7 +187,7 @@ pub(crate) fn parse_enum(data: DataEnum) -> MacroResult<Enum> {
             taken_names.insert(name.clone());
 
             Variant {
-                ident: variant_ident,
+                data: variant,
                 v_type: VariantType::Named { name, constructor, case_insensitive },
                 span: variant_span,
             }
