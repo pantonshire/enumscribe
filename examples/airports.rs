@@ -2,21 +2,21 @@
 extern crate enumscribe;
 
 #[derive(EnumToString)]
-enum Foo {
-    #[enumscribe(str = "b", case_insensitive)]
-    Baa,
-    // #[enumscribe(ignore)]
-    Baz(),
+enum Airport {
+    #[enumscribe(str = "LHR", case_insensitive)]
+    Heathrow,
+    #[enumscribe(str = "LGW", case_insensitive)]
+    Gatwick,
+    #[enumscribe(str = "LTN", case_insensitive)]
+    Luton,
+    #[enumscribe(str = "BHX", case_insensitive)]
+    BirminghamInternational,
     #[enumscribe(other)]
-    Lorem { inner: String }
+    Other(String),
 }
 
 fn main() {
-    let foo = Foo::Baa;
-
-    // let s: String = foo.into();
-
-    let s: String = <_ as std::convert::Into<String>>::into(foo);
-
-    println!("Hello, {}!", s);
+    let luton = Airport::Luton;
+    let luton_str: String = luton.into();
+    println!("Hello, {}!", luton_str);
 }
