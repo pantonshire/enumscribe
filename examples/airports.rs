@@ -3,6 +3,7 @@ extern crate enumscribe;
 
 #[derive(EnumToString)]
 enum Foo {
+    #[enumscribe(str = "b", case_insensitive)]
     Baa,
     #[enumscribe(ignore)]
     Baz(),

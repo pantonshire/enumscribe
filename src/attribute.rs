@@ -125,7 +125,7 @@ impl Dict {
         Ok(dict)
     }
 
-    pub(crate) fn remove_typed_value<T, F>(&mut self, key: &str, converter: F) -> MacroResult<Option<(T, Span)>>
+    pub(crate) fn remove_typed<T, F>(&mut self, key: &str, converter: F) -> MacroResult<Option<(T, Span)>>
         where
             F: Fn(&Value) -> ValueTypeResult<T>
     {
@@ -138,6 +138,17 @@ impl Dict {
                     span,
                 ))
             }
+        }
+    }
+
+    pub(crate) fn remove_typed_or_default<T, F>(&mut self, key: &str, default: (T, Span), converter: F) -> MacroResult<(T, Span)>
+        where
+            F: Fn(&Value) -> ValueTypeResult<T>
+    {
+        match self.remove_typed(key, converter) {
+            Ok(Some(value)) => Ok(value),
+            Ok(None) => Ok(default),
+            Err(err) => Err(err),
         }
     }
 
