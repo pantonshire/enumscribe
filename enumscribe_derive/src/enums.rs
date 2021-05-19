@@ -42,10 +42,15 @@ pub(crate) enum VariantConstructor {
 }
 
 impl<'a> Variant<'a> {
-    pub(crate) fn match_variant<F, G>(&self, named_fn: F, other_fn: G) -> MacroResult<Option<(TokenStream, TokenStream)>>
+    pub(crate) fn match_variant<F, G>(
+        &self,
+        enum_ident: &Ident,
+        named_fn: &F,
+        other_fn: &G
+    ) -> MacroResult<Option<(TokenStream, TokenStream)>>
         where
-            F: Fn(&str) -> MacroResult<TokenStream>,
-            G: Fn(TokenStream) -> MacroResult<TokenStream>
+            F: Fn(&Variant, &Ident, &str) -> MacroResult<TokenStream>,
+            G: Fn(&Variant, &Ident, TokenStream) -> MacroResult<TokenStream>
     {
         let variant_ident = &self.data.ident;
 
@@ -54,11 +59,11 @@ impl<'a> Variant<'a> {
 
             VariantType::Named { name, constructor, .. } => {
                 let pattern = match constructor {
-                    VariantConstructor::None => quote! { #variant_ident },
-                    VariantConstructor::Paren => quote! { #variant_ident () },
-                    VariantConstructor::Brace => quote! { #variant_ident {} }
+                    VariantConstructor::None => quote! { #enum_ident::#variant_ident },
+                    VariantConstructor::Paren => quote! { #enum_ident::#variant_ident() },
+                    VariantConstructor::Brace => quote! { #enum_ident::#variant_ident{} }
                 };
-                Ok(Some((pattern, named_fn(name)?)))
+                Ok(Some((pattern, named_fn(self, enum_ident, name)?)))
             }
 
             VariantType::Other { field_name } => {
@@ -67,10 +72,10 @@ impl<'a> Variant<'a> {
                     None => quote! { __enumscribe_other_inner }
                 };
                 let pattern = match field_name {
-                    Some(_) => quote! { #variant_ident { #field_name_tokens } },
-                    None => quote! { #variant_ident (#field_name_tokens) }
+                    Some(_) => quote! { #enum_ident::#variant_ident{#field_name_tokens} },
+                    None => quote! { #enum_ident::#variant_ident(#field_name_tokens) }
                 };
-                Ok(Some((pattern, other_fn(field_name_tokens)?)))
+                Ok(Some((pattern, other_fn(self, enum_ident, field_name_tokens)?)))
             }
         }
     }

@@ -116,10 +116,10 @@ pub trait TryScribeCowStr {
     fn try_scribe(&self) -> Option<Cow<'static, str>>;
 }
 
-pub trait Unscribe {
+pub trait Unscribe: Sized {
     fn unscribe(to_unscribe: &str) -> Self;
 }
 
-pub trait TryUnscribe {
+pub trait TryUnscribe: Sized {
     fn try_unscribe(to_unscribe: &str) -> Option<Self>;
 }
