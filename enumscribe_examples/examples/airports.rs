@@ -1,7 +1,7 @@
-#[macro_use]
-extern crate enumscribe;
+use enumscribe::*;
 
-#[derive(EnumToString)]
+// #[derive(ScribeString)]
+#[derive(TryScribeString)]
 enum Airport {
     #[enumscribe(str = "LHR", case_insensitive)]
     Heathrow,
@@ -9,7 +9,7 @@ enum Airport {
     Gatwick,
     #[enumscribe(str = "LTN", case_insensitive)]
     Luton,
-    #[enumscribe(str = "BHX", case_insensitive)]
+    #[enumscribe(str = "BHX", case_insensitive, ignore)]
     BirminghamInternational,
     #[enumscribe(other)]
     Other(String),
@@ -17,6 +17,6 @@ enum Airport {
 
 fn main() {
     let luton = Airport::Luton;
-    let luton_str: String = luton.into();
-    println!("Hello, {}!", luton_str);
+    let luton_string = luton.try_scribe();
+    println!("Hello, {:?}!", luton_string);
 }

@@ -42,15 +42,15 @@ pub(crate) enum VariantConstructor {
 }
 
 impl<'a> Variant<'a> {
-    pub(crate) fn match_variant<F, G>(&self, named_fn: F, other_fn: G) -> Option<(TokenStream, TokenStream)>
+    pub(crate) fn match_variant<F, G>(&self, named_fn: F, other_fn: G) -> MacroResult<Option<(TokenStream, TokenStream)>>
         where
-            F: Fn(&str) -> TokenStream,
-            G: Fn(TokenStream) -> TokenStream
+            F: Fn(&str) -> MacroResult<TokenStream>,
+            G: Fn(TokenStream) -> MacroResult<TokenStream>
     {
         let variant_ident = &self.data.ident;
 
         match &self.v_type {
-            VariantType::Ignore => None,
+            VariantType::Ignore => Ok(None),
 
             VariantType::Named { name, constructor, .. } => {
                 let pattern = match constructor {
@@ -58,19 +58,19 @@ impl<'a> Variant<'a> {
                     VariantConstructor::Paren => quote! { #variant_ident () },
                     VariantConstructor::Brace => quote! { #variant_ident {} }
                 };
-                Some((pattern, named_fn(name)))
+                Ok(Some((pattern, named_fn(name)?)))
             }
 
             VariantType::Other { field_name } => {
                 let field_name_tokens = match field_name {
                     Some(field_name) => field_name.to_token_stream(),
-                    None => quote! { __other_inner }
+                    None => quote! { __enumscribe_other_inner }
                 };
                 let pattern = match field_name {
                     Some(_) => quote! { #variant_ident { #field_name_tokens } },
                     None => quote! { #variant_ident (#field_name_tokens) }
                 };
-                Some((pattern, other_fn(field_name_tokens)))
+                Ok(Some((pattern, other_fn(field_name_tokens)?)))
             }
         }
     }

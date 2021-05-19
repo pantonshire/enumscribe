@@ -1,0 +1,19 @@
+[package]
+name = "enumscribe_derive"
+version = "0.1.0"
+authors = ["Tom Panton <pantonshire@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = "Procedural macros for converting between enums and strings"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+syn = "1.0"
+quote = "1.0"
+
+[dev-dependencies]
+serde = "1.0"
+serde_json = "1.0"

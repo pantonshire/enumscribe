@@ -1,0 +1,10 @@
+[package]
+name = "enumscribe_examples"
+version = "0.1.0"
+authors = ["Tom Panton <pantonshire@gmail.com>"]
+edition = "2018"
+license = "MIT"
+
+[dev-dependencies]
+enumscribe = { path = "../enumscribe" }
+enumscribe_derive = { path = "../enumscribe_derive" }
