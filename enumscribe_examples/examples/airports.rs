@@ -1,7 +1,8 @@
 use enumscribe::*;
 
 // #[derive(ScribeString)]
-#[derive(TryScribeString)]
+
+#[derive(TryScribeCowStr)]
 enum Airport {
     #[enumscribe(str = "LHR", case_insensitive)]
     Heathrow,
@@ -17,6 +18,8 @@ enum Airport {
 
 fn main() {
     let luton = Airport::Luton;
-    let luton_string = luton.try_scribe();
-    println!("Hello, {:?}!", luton_string);
+    println!("Hello, {:?}!", luton.try_scribe());
+
+    let other = Airport::Other("Dedicated EasyJet-only airport".to_owned());
+    println!("Hello, {:?}!", other.try_scribe());
 }
