@@ -1,3 +1,6 @@
+//! Derive macros for the traits provided by enumscribe, to help you easily convert your enums
+//! to strings and vice-versa.
+
 use proc_macro::TokenStream;
 use std::iter;
 
@@ -24,6 +27,117 @@ macro_rules! proc_try {
             Err(err) => return err.into()
         }
     };
+}
+
+#[proc_macro_derive(ScribeStaticStr, attributes(enumscribe))]
+pub fn derive_scribe_static_str(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = syn::parse(input)
+        .expect("failed to parse input");
+
+    let enum_data = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+
+    let enum_ident = &input.ident;
+    let enum_idents = iter::repeat(enum_ident);
+
+    let mut match_patterns = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_results = Vec::with_capacity(parsed_enum.variants.len());
+
+    for variant in parsed_enum.variants.iter() {
+        match variant.match_variant(
+            |name| Ok(quote! {
+                #name
+            }),
+            |_| Err(MacroError::new(format!(
+                "cannot derive ScribeStaticStr for {} because the variant {} is marked as {}, so \
+                 there is no &'static str associated with it\n\
+                 hint: try deriving ScribeCowStr instead",
+                enum_ident.to_string(), variant.data.ident.to_string(), OTHER
+            ), variant.span)),
+        ) {
+            Ok(Some((pattern, result))) => {
+                match_patterns.push(pattern);
+                match_results.push(result);
+            },
+
+            Ok(None) => return MacroError::new(format!(
+                "cannot derive ScribeStaticStr for {} because the variant {} is marked as {}\n\
+                 explanation: since {} is ignored, it cannot be guaranteed that the enum can \
+                 always be successfully converted to a String\n\
+                 hint: try deriving TryScribeStaticStr instead",
+                enum_ident.to_string(), variant.data.ident.to_string(), IGNORE,
+                variant.data.ident.to_string(),
+            ), variant.span).into(),
+
+            Err(err) => return err.into()
+        }
+    }
+
+    (quote! {
+        impl ::enumscribe::ScribeStaticStr for #enum_ident {
+            fn scribe(&self) -> &'static str {
+                match self {
+                    #(#enum_idents::#match_patterns => #match_results,)*
+                }
+            }
+        }
+    }).into()
+}
+
+#[proc_macro_derive(TryScribeStaticStr, attributes(enumscribe))]
+pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = syn::parse(input)
+        .expect("failed to parse input");
+
+    let enum_data = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+
+    let enum_ident = &input.ident;
+    let enum_idents = iter::repeat(enum_ident);
+
+    let mut ignore_variant = false;
+    let mut match_patterns = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_results = Vec::with_capacity(parsed_enum.variants.len());
+
+    for variant in parsed_enum.variants.iter() {
+        match variant.match_variant(
+            |name| Ok(quote! {
+                ::std::option::Option::Some(#name)
+            }),
+            |_| Err(MacroError::new(format!(
+                "cannot derive TryScribeStaticStr for {} because the variant {} is marked as {}, so \
+                 there is no &'static str associated with it\n\
+                 hint: try deriving ScribeCowStr instead",
+                enum_ident.to_string(), variant.data.ident.to_string(), OTHER
+            ), variant.span)),
+        ) {
+            Ok(Some((pattern, result))) => {
+                match_patterns.push(pattern);
+                match_results.push(result);
+            },
+
+            Ok(None) => ignore_variant = true,
+
+            Err(err) => return err.into()
+        }
+    }
+
+    let ignore_arm = if ignore_variant {
+        quote! { _ => ::std::option::Option::None, }
+    } else {
+        quote! {}
+    };
+
+    (quote! {
+        impl ::enumscribe::TryScribeStaticStr for #enum_ident {
+            fn try_scribe(&self) -> ::std::option::Option<&'static str> {
+                match self {
+                    #(#enum_idents::#match_patterns => #match_results,)*
+                    #ignore_arm
+                }
+            }
+        }
+    }).into()
 }
 
 #[proc_macro_derive(ScribeString, attributes(enumscribe))]
