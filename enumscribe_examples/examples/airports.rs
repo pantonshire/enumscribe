@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use enumscribe::*;
 
-#[derive(TryScribeCowStr, Unscribe, EnumSerialize, Eq, PartialEq, Debug)]
+#[derive(TryScribeCowStr, Unscribe, EnumSerialize, EnumDeserialize, Eq, PartialEq, Debug)]
 enum Airport {
     #[enumscribe(str = "LHR")]
     Heathrow,
@@ -16,7 +16,7 @@ enum Airport {
     Other(String),
 }
 
-#[derive(Serialize, Eq, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Debug)]
 struct AirportInfo {
     airport: Airport,
     info: String,
@@ -41,6 +41,10 @@ fn main() {
         airport: Airport::Gatwick(),
         info: "It's somewhere in London, innit".to_owned()
     };
-
     println!("{}", serde_json::to_string(&info).unwrap());
+
+    println!();
+
+    let info_str = r#"{ "airport": "lgw", "info": "Fun Gatwick fact: I'm fresh out of Gatwick facts" }"#;
+    println!("{:?}", serde_json::from_str::<AirportInfo>(info_str).unwrap());
 }
