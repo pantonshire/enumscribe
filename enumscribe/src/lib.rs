@@ -6,8 +6,8 @@
 //! | `ignore` used? | `other` used? | Conversion to string | Conversion from string |
 //! |----------------|---------------|----------------------|------------------------|
 //! | No             | No            | [ScribeStaticStr]    | [TryUnscribe]          |
-//! | Yes            | No            | [TryScribeStaticStr] | [TryUnscribe]          |
 //! | No             | Yes           | [ScribeCowStr]       | [Unscribe]             |
+//! | Yes            | No            | [TryScribeStaticStr] | [TryUnscribe]          |
 //! | Yes            | Yes           | [TryScribeCowStr]    | [Unscribe]             |
 //!
 //! There are also [ScribeString] and [TryScribeString] traits which can be used in the same

@@ -9,3 +9,7 @@ description = "Procedural macros for converting between enums and strings"
 
 [dependencies]
 enumscribe_derive = { version = "0.1.0", path = "../enumscribe_derive" }
+
+[features]
+default = ["serde"]
+serde = ["enumscribe_derive/serde"]

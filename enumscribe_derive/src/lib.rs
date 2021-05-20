@@ -2,7 +2,6 @@
 //! to strings and vice-versa.
 
 use proc_macro::TokenStream;
-use std::iter;
 
 use proc_macro2::Ident;
 use quote::quote;
@@ -10,7 +9,7 @@ use syn::{Data, DataEnum, DeriveInput};
 
 use error::{MacroError, MacroResult};
 
-use crate::enums::{Variant, VariantType, VariantConstructor};
+use crate::enums::{Variant, VariantType};
 
 mod enums;
 mod attribute;
@@ -420,6 +419,89 @@ pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
 
         |_| Ok(quote! { _ => ::std::option::Option::None })
     )
+}
+
+#[cfg(feature = "serde")]
+#[proc_macro_derive(EnumSerialize, attributes(enumscribe))]
+pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = syn::parse(input)
+        .expect("failed to parse input");
+
+    let enum_data = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+
+    let enum_ident = &input.ident;
+    let serializer_ident = quote! { __enumscribe_serializer };
+
+    let mut match_arms = Vec::new();
+    let mut ignore_variant = false;
+
+    for variant in parsed_enum.variants.iter() {
+        let variant_ident = &variant.data.ident;
+
+        match &variant.v_type {
+            VariantType::Ignore => ignore_variant = true,
+
+            VariantType::Named { name, constructor, .. } => {
+                let constructor_tokens = constructor.empty();
+                match_arms.push(quote! {
+                    #enum_ident::#variant_ident #constructor_tokens =>
+                        #serializer_ident.serialize_str(#name)
+                })
+            },
+
+            VariantType::Other { field_name } => {
+                match field_name {
+                    Some(field_name) => {
+                        match_arms.push(quote! {
+                            #enum_ident::#variant_ident { #field_name } =>
+                                #serializer_ident.serialize_str(&#field_name)
+                        })
+                    },
+                    None => {
+                        let field_name = quote! { __enumscribe_other_inner };
+                        match_arms.push(quote! {
+                            #enum_ident::#variant_ident(#field_name) =>
+                                #serializer_ident.serialize_str(&#field_name)
+                        })
+                    }
+                }
+            }
+        }
+    }
+
+    let ignore_arm = if ignore_variant {
+        let err_string = format!(
+            "attempted to serialize an unserializable variant of {}",
+            enum_ident
+        );
+        quote! {
+            _ => ::std::result::Result::Err(
+                ::serde::ser::Error::custom(#err_string)
+            )
+        }
+    } else {
+        quote! {}
+    };
+
+    (quote! {
+        impl ::serde::Serialize for #enum_ident {
+            fn serialize<S>(&self, #serializer_ident: S) -> ::std::result::Result<S::Ok, S::Error>
+                where S: ::serde::Serializer
+            {
+                match self {
+                    #(#match_arms,)*
+                    #ignore_arm
+                }
+            }
+        }
+    }).into()
+}
+
+#[cfg(feature = "serde")]
+#[proc_macro_derive(EnumDeserialize, attributes(enumscribe))]
+pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
+    todo!()
 }
 
 fn get_enum_data(input: &DeriveInput) -> MacroResult<&DataEnum> {

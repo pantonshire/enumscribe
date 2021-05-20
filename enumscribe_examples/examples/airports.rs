@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use enumscribe::*;
 
-#[derive(TryScribeCowStr, TryUnscribe, Eq, PartialEq, Debug)]
+#[derive(TryScribeCowStr, Unscribe, EnumSerialize, Eq, PartialEq, Debug)]
 enum Airport {
     #[enumscribe(str = "LHR")]
     Heathrow,
@@ -10,18 +12,35 @@ enum Airport {
     Luton {},
     #[enumscribe(str = "BHX", case_insensitive, ignore)]
     BirminghamInternational,
-    // #[enumscribe(other)]
-    // Other(String),
+    #[enumscribe(other)]
+    Other(String),
+}
+
+#[derive(Serialize, Eq, PartialEq, Debug)]
+struct AirportInfo {
+    airport: Airport,
+    info: String,
 }
 
 fn main() {
     let luton = Airport::Luton {};
     println!("Hello, {:?}!", luton.try_scribe());
 
-    // let other = Airport::Other("Dedicated EasyJet-only airport".to_owned());
-    // println!("Hello, {:?}!", other.try_scribe());
+    let other = Airport::Other("Dedicated EasyJet-only airport".to_owned());
+    println!("Hello, {:?}!", other.try_scribe());
 
-    println!("{:?}", Airport::try_unscribe("LHR"));
-    println!("{:?}", Airport::try_unscribe("lhr"));
-    println!("{:?}", Airport::try_unscribe("lgw"));
+    println!();
+
+    println!("{:?}", Airport::unscribe("LHR"));
+    println!("{:?}", Airport::unscribe("lhr"));
+    println!("{:?}", Airport::unscribe("lgw"));
+
+    println!();
+
+    let info = AirportInfo {
+        airport: Airport::Gatwick(),
+        info: "It's somewhere in London, innit".to_owned()
+    };
+
+    println!("{}", serde_json::to_string(&info).unwrap());
 }
