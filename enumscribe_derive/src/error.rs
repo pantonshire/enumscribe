@@ -1,11 +1,14 @@
+use proc_macro::TokenStream;
 use std::borrow::Cow;
-use std::fmt;
 use std::error;
+use std::fmt;
 use std::result;
 
 use proc_macro2::Span;
 use quote::quote_spanned;
 use syn::Error;
+
+use crate::TokenStream2;
 
 #[derive(Clone, Debug)]
 pub(crate) struct MacroError {
@@ -16,18 +19,18 @@ pub(crate) struct MacroError {
 pub(crate) type MacroResult<T> = result::Result<T, MacroError>;
 
 impl MacroError {
-    pub(crate) fn new<T>(message: T, span: Span) -> Self where T : Into<Cow<'static, str>> {
+    pub(crate) fn new<T>(message: T, span: Span) -> Self where T: Into<Cow<'static, str>> {
         MacroError {
             message: message.into(),
             span,
         }
     }
 
-    pub(crate) fn to_token_stream(&self) -> proc_macro::TokenStream {
+    pub(crate) fn to_token_stream(&self) -> TokenStream {
         self.to_token_stream2().into()
     }
 
-    pub(crate) fn to_token_stream2(&self) -> proc_macro2::TokenStream {
+    pub(crate) fn to_token_stream2(&self) -> TokenStream2 {
         let message = &self.message;
         quote_spanned! {
             self.span => ::std::compile_error!(#message);
@@ -41,13 +44,13 @@ impl From<syn::Error> for MacroError {
     }
 }
 
-impl From<MacroError> for proc_macro::TokenStream {
+impl From<MacroError> for TokenStream {
     fn from(err: MacroError) -> Self {
         err.to_token_stream()
     }
 }
 
-impl From<MacroError> for proc_macro2::TokenStream {
+impl From<MacroError> for TokenStream2 {
     fn from(err: MacroError) -> Self {
         err.to_token_stream2()
     }
@@ -63,7 +66,7 @@ impl error::Error for MacroError {}
 
 #[derive(Clone, Debug)]
 pub(crate) struct ValueTypeError {
-    pub(crate) message: Cow<'static, str>
+    pub(crate) message: Cow<'static, str>,
 }
 
 pub(crate) type ValueTypeResult<T> = result::Result<T, ValueTypeError>;

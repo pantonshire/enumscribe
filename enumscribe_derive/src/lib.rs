@@ -9,7 +9,7 @@ use syn::{Data, DataEnum, DeriveInput};
 
 use error::{MacroError, MacroResult};
 
-use crate::enums::Variant;
+use crate::enums::{Variant, VariantType};
 use proc_macro2::Ident;
 
 mod enums;
@@ -55,15 +55,11 @@ fn derive_scribe<F, G, E>(
 
     let enum_ident = &input.ident;
 
-    let mut match_patterns = Vec::with_capacity(parsed_enum.variants.len());
-    let mut match_results = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_arms = Vec::with_capacity(parsed_enum.variants.len());
 
     for variant in parsed_enum.variants.iter() {
         match variant.match_variant(enum_ident, &named_fn, &other_fn) {
-            Ok(Some((pattern, result))) => {
-                match_patterns.push(pattern);
-                match_results.push(result);
-            }
+            Ok(Some((pattern, result))) => match_arms.push(quote! { #pattern => #result }),
             Ok(None) => return ignore_err_fn(variant, enum_ident).into(),
             Err(err) => return err.into()
         }
@@ -73,7 +69,7 @@ fn derive_scribe<F, G, E>(
         impl #trait_ident for #enum_ident {
             fn scribe(&self) -> #trait_return_type {
                 match self {
-                    #(#match_patterns => #match_results,)*
+                    #(#match_arms,)*
                 }
             }
         }
@@ -101,15 +97,11 @@ fn derive_try_scribe<F, G>(
     let enum_ident = &input.ident;
 
     let mut ignore_variant = false;
-    let mut match_patterns = Vec::with_capacity(parsed_enum.variants.len());
-    let mut match_results = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_arms = Vec::with_capacity(parsed_enum.variants.len());
 
     for variant in parsed_enum.variants.iter() {
         match variant.match_variant(enum_ident, &named_fn, &other_fn) {
-            Ok(Some((pattern, result))) => {
-                match_patterns.push(pattern);
-                match_results.push(result);
-            }
+            Ok(Some((pattern, result))) => match_arms.push(quote! { #pattern => #result }),
             Ok(None) => ignore_variant = true,
             Err(err) => return err.into()
         }
@@ -125,7 +117,7 @@ fn derive_try_scribe<F, G>(
         impl #trait_ident for #enum_ident {
             fn try_scribe(&self) -> #trait_return_type {
                 match self {
-                    #(#match_patterns => #match_results,)*
+                    #(#match_arms,)*
                     #ignore_arm
                 }
             }
@@ -288,6 +280,36 @@ pub fn derive_try_scribe_cow_str(input: TokenStream) -> TokenStream {
 
         quote! { ::std::option::Option::None }
     )
+}
+
+#[proc_macro_derive(Unscribe, attributes(enumscribe))]
+pub fn derive_unscribe(input: TokenStream) -> TokenStream {
+    // let input: DeriveInput = syn::parse(input)
+    //     .expect("failed to parse input");
+    //
+    // let enum_data = proc_try!(get_enum_data(&input));
+    // let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    //
+    // let enum_ident = &input.ident;
+    //
+    // let mut other_arm = None;
+    // let mut case_sensitive_arms = Vec::new();
+    // let mut case_insensitive_arms = Vec::new();
+    //
+    // for variant in parsed_enum.variants.iter() {
+    //     match variant.v_type {
+    //         VariantType::Ignore => {}
+    //         VariantType::Named { .. } => {}
+    //         VariantType::Other { .. } => {}
+    //     }
+    // }
+
+    todo!()
+}
+
+#[proc_macro_derive(TryUnscribe, attributes(enumscribe))]
+pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
+    todo!()
 }
 
 fn get_enum_data(input: &DeriveInput) -> MacroResult<&DataEnum> {

@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens};
 use syn::{DataEnum, Fields};
 use syn::spanned::Spanned;
 
 use crate::{CASE_INSENSITIVE, CRATE_ATTR, IGNORE, NAME, OTHER};
+use crate::TokenStream2;
 use crate::attribute::{Dict, Value};
 use crate::error::{MacroError, MacroResult};
 
@@ -47,10 +48,10 @@ impl<'a> Variant<'a> {
         enum_ident: &Ident,
         named_fn: &F,
         other_fn: &G
-    ) -> MacroResult<Option<(TokenStream, TokenStream)>>
+    ) -> MacroResult<Option<(TokenStream2, TokenStream2)>>
         where
-            F: Fn(&Variant, &Ident, &str) -> MacroResult<TokenStream>,
-            G: Fn(&Variant, &Ident, TokenStream) -> MacroResult<TokenStream>
+            F: Fn(&Variant, &Ident, &str) -> MacroResult<TokenStream2>,
+            G: Fn(&Variant, &Ident, TokenStream2) -> MacroResult<TokenStream2>
     {
         let variant_ident = &self.data.ident;
 
@@ -84,6 +85,8 @@ impl<'a> Variant<'a> {
 pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
     let mut variants = Vec::with_capacity(data.variants.len());
     let mut taken_names = HashSet::new();
+    let mut taken_insensitive_names = HashSet::new();
+    let mut taken_sensitive_names = HashSet::new();
     let mut other_variant = false;
 
     for variant in data.variants.iter() {
@@ -167,6 +170,23 @@ pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
                 ));
             }
 
+            taken_names.insert(name.clone());
+
+            // Extra duplicate checking for case-insensitive names
+            let lowercase_name = name.to_lowercase();
+            if taken_insensitive_names.contains(&lowercase_name) || (case_insensitive && taken_sensitive_names.contains(&lowercase_name)) {
+                return Err(MacroError::new(
+                    format!("duplicate name \"{}\"", name),
+                    name_span,
+                ));
+            }
+
+            if case_insensitive {
+                taken_insensitive_names.insert(lowercase_name);
+            } else {
+                taken_sensitive_names.insert(lowercase_name);
+            }
+
             // Return an error if the variant has any fields
             if variant.fields.len() != 0 {
                 let variant_ident = variant.ident.to_string();
@@ -188,8 +208,6 @@ pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
                 Fields::Unnamed(_) => VariantConstructor::Paren,
                 Fields::Unit => VariantConstructor::None,
             };
-
-            taken_names.insert(name.clone());
 
             Variant {
                 data: variant,
