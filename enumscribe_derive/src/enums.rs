@@ -31,7 +31,7 @@ pub(crate) enum VariantType<'a> {
         case_insensitive: bool,
     },
     Other {
-        field_name: Option<&'a Ident> //use {} for constructor if Some, use () if None
+        field_name: Option<&'a Ident>
     },
 }
 
@@ -59,11 +59,8 @@ impl<'a> Variant<'a> {
             VariantType::Ignore => Ok(None),
 
             VariantType::Named { name, constructor, .. } => {
-                let pattern = match constructor {
-                    VariantConstructor::None => quote! { #enum_ident::#variant_ident },
-                    VariantConstructor::Paren => quote! { #enum_ident::#variant_ident() },
-                    VariantConstructor::Brace => quote! { #enum_ident::#variant_ident{} }
-                };
+                let constructor_tokens = constructor.empty();
+                let pattern = quote! { #enum_ident::#variant_ident #constructor_tokens };
                 Ok(Some((pattern, named_fn(self, enum_ident, name)?)))
             }
 
@@ -78,6 +75,16 @@ impl<'a> Variant<'a> {
                 };
                 Ok(Some((pattern, other_fn(self, enum_ident, field_name_tokens)?)))
             }
+        }
+    }
+}
+
+impl VariantConstructor {
+    pub(crate) fn empty(&self) -> TokenStream2 {
+        match self {
+            VariantConstructor::None => quote! {},
+            VariantConstructor::Paren => quote! { () },
+            VariantConstructor::Brace => quote! { {} }
         }
     }
 }
@@ -182,10 +189,10 @@ pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
             }
 
             if case_insensitive {
-                taken_insensitive_names.insert(lowercase_name);
+                &mut taken_insensitive_names
             } else {
-                taken_sensitive_names.insert(lowercase_name);
-            }
+                &mut taken_sensitive_names
+            }.insert(lowercase_name);
 
             // Return an error if the variant has any fields
             if variant.fields.len() != 0 {
