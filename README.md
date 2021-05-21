@@ -1,2 +1,134 @@
 # enumscribe
-Procedural macros for converting between enums and strings
+This crate provides derive macros for converting between simple enums and strings. It also includes derive macros for [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) for simple enums.
+
+## Usage
+There are a variety of different traits that you can derive. The "Scribe" traits are for converting from an enum to a string, and the "Unscribe" traits are for
+converting a string to an enum.
+
+### Basic usage
+```rust
+use enumscribe::{ScribeStaticStr, TryUnscribe};
+
+#[derive(ScribeStaticStr, TryUnscribe, PartialEq, Eq)]
+enum Airport {
+    #[enumscribe(str = "LHR")]
+    Heathrow,
+    #[enumscribe(str = "LGW")]
+    Gatwick,
+    #[enumscribe(str = "LTN")]
+    Luton,
+}
+
+// Convert an Airport to a &'static str
+assert_eq!(Airport::Heathrow.scribe(), "LHR");
+    
+// Convert a &str to a Option<Airport>
+assert_eq!(Airport::try_unscribe("LGW"), Some(Airport::Gatwick));
+```
+
+The `#[enumscribe(str = "...")]` allows us to specify what string should be used to represent a particular variant. If this is omitted, the name of the variant
+will be used instead.
+
+### Case insensitivity
+The `#[enumscribe(case_insensitive)]` attribute can be used to make the "Unscribe" traits perform case-insensitive matching for a variant:
+
+```rust
+use enumscribe::TryUnscribe;
+
+#[derive(TryUnscribe, PartialEq, Eq)]
+enum Website {
+    #[enumscribe(str = "github.com", case_insensitive)]
+    Github,
+    #[enumscribe(str = "crates.io", case_insensitive)]
+    CratesDotIo,
+}
+
+assert_eq!(Website::try_unscribe("GiThUb.CoM"), Some(Website::Github));
+```
+
+### "other" variant
+You can also have a variant which stores strings that could not be matched to any other variant. This is done using the `#[enumscribe(other)]` attribute.
+The variant should have a single field, which is a `String`.
+
+```rust
+use std::borrow::Cow;
+
+use enumscribe::{Unscribe, ScribeCowStr};
+
+#[derive(ScribeCowStr, Unscribe, PartialEq, Eq)]
+enum Website {
+    #[enumscribe(str = "github.com", case_insensitive)]
+    Github,
+    #[enumscribe(str = "crates.io", case_insensitive)]
+    CratesDotIo,
+    #[enumscribe(other)]
+    Other(String),
+}
+
+// Note that we don't need to use an Option any more!
+assert_eq!(Website::unscribe("github.com"), Website::Github);
+
+// Unbelievably, there exist websites other than github and crates.io
+assert_eq!(Website::unscribe("stackoverflow.com"), Website::Other("stackoverflow.com".to_owned()));
+
+// We can't scribe to a &'static str any more, so we use a Cow<'static, str> instead
+assert_eq!(Website::Github.scribe(), Cow::Borrowed("github.com"));
+
+assert_eq!(Website::Other("owasp.org".to_owned()).scribe(), Cow::Owned("owasp.org".to_owned()));
+```
+
+### Ignoring variants
+If you need to, you can use `#[enumscribe(ignore)]` to prevent a variant from being used by Scribe or Unscribe traits.
+
+However, this means that converting the enum to a string can fail, so you must use TryScribe instead of Scribe in this case.
+
+```rust
+use enumscribe::TryScribeStaticStr;
+
+#[derive(TryScribeStaticStr, PartialEq, Eq)]
+enum Airport {
+    #[enumscribe(str = "LHR")]
+    Heathrow,
+    #[enumscribe(str = "LGW")]
+    Gatwick,
+    #[enumscribe(str = "LTN")]
+    Luton,
+    #[enumscribe(ignore)]
+    SecretExtraVariant(i32), // we have to ignore this variant because of the i32 field
+}
+
+assert_eq!(Airport::SecretExtraVariant(123).try_scribe(), None);
+
+assert_eq!(Airport::Luton.try_scribe(), Some("LTN"));
+```
+
+### Serde
+You can derive [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) using the same syntax:
+
+```rust
+use enumscribe::{EnumSerialize, EnumDeserialize};
+
+#[derive(EnumSerialize, EnumDeserialize, PartialEq, Eq)]
+enum Airport {
+    #[enumscribe(str = "LHR")]
+    Heathrow,
+    #[enumscribe(str = "LGW")]
+    Gatwick,
+    #[enumscribe(str = "LTN")]
+    Luton,
+}
+```
+
+## Traits table
+Here is a table to show which traits you should derive, depending on your enum:
+
+| `ignore` used? | `other` used? | Conversion to string | Conversion from string |
+|----------------|---------------|----------------------|------------------------|
+| No             | No            | `ScribeStaticStr`    | `TryUnscribe`          |
+| No             | Yes           | `ScribeCowStr`       | `Unscribe`             |
+| Yes            | No            | `TryScribeStaticStr` | `TryUnscribe`          |
+| Yes            | Yes           | `TryScribeCowStr`    | `Unscribe`             |
+
+There are also `ScribeString` and `TryScribeString` traits which can be used in the same situations as `ScribeCowStr` and `TryScribeCowStr`, respectively.
+These traits produce a `String` rather than a `Cow<'static, str>`, so they will always perform an allocation. Therefore, you should prefer the
+`ScribeCowStr` traits over the `ScribeString` traits, unless you *really* don't want to use a `Cow` for whatever reason.
