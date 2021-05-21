@@ -8,8 +8,9 @@ repository = "https://github.com/Pantonshire/enumscribe"
 description = "Procedural macros for converting between enums and strings"
 
 [dependencies]
-enumscribe_derive = { version = "0.1.0", path = "../enumscribe_derive" }
+enumscribe_derive = { version = "0.1.0", path = "../enumscribe_derive", optional = true }
 
 [features]
-default = ["serde"]
-serde = ["enumscribe_derive/serde"]
+default = ["derive", "serde"]
+derive = ["enumscribe_derive"]
+serde = ["derive", "enumscribe_derive/serde"]
