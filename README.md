@@ -68,7 +68,7 @@ enum Website {
 // Note that we don't need to use an Option anymore!
 assert_eq!(Website::unscribe("github.com"), Website::Github);
 
-// Unbelievably, there exist websites other than github and crates.io
+// Unbelievably, websites exist other than github and crates.io
 assert_eq!(Website::unscribe("stackoverflow.com"), Website::Other("stackoverflow.com".to_owned()));
 
 // We can't scribe to a &'static str anymore, so we use a Cow<'static, str> instead

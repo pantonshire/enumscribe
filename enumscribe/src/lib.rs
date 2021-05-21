@@ -63,15 +63,19 @@
 //! }
 //!
 //! // Note that we don't need to use an Option anymore!
-//! assert_eq!(Website::unscribe("github.com"), Website::Github);
+//! assert_eq!(Website::unscribe("github.com"),
+//!            Website::Github);
 //!
-//! // Unbelievably, there exist websites other than github and crates.io
-//! assert_eq!(Website::unscribe("stackoverflow.com"), Website::Other("stackoverflow.com".to_owned()));
+//! // Unbelievably, websites exist other than github and crates.io
+//! assert_eq!(Website::unscribe("stackoverflow.com"),
+//!            Website::Other("stackoverflow.com".to_owned()));
 //!
 //! // We can't scribe to a &'static str anymore, so we use a Cow<'static, str> instead
-//! assert_eq!(Website::Github.scribe(), Cow::Borrowed::<'static, str>("github.com"));
+//! assert_eq!(Website::Github.scribe(),
+//!            Cow::Borrowed::<'static, str>("github.com"));
 //!
-//! assert_eq!(Website::Other("owasp.org".to_owned()).scribe(), Cow::Owned::<'static, str>("owasp.org".to_owned()));
+//! assert_eq!(Website::Other("owasp.org".to_owned()).scribe(),
+//!            Cow::Owned::<'static, str>("owasp.org".to_owned()));
 //! ```
 //!
 //! If you need to, you can use `#[enumscribe(ignore)]` to prevent a variant from being used by
@@ -133,9 +137,11 @@
 //!
 //! let flight_json = r#"{"takeoff":"LHR","landing":"LGW"}"#;
 //!
-//! assert_eq!(serde_json::to_string(&flight).unwrap(), flight_json.to_owned());
+//! assert_eq!(serde_json::to_string(&flight).unwrap(),
+//!            flight_json.to_owned());
 //!
-//! assert_eq!(serde_json::from_str::<Flight>(flight_json).unwrap(), flight);
+//! assert_eq!(serde_json::from_str::<Flight>(flight_json).unwrap(),
+//!            flight);
 //! ```
 //!
 //! Here is a table to show which traits you should derive for your enum:
@@ -179,7 +185,7 @@ pub trait ScribeStaticStr {
 /// Trait for converting an enum to a static string slice, or `None` if the conversion fails.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// `#[derive(TryScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -198,7 +204,7 @@ pub trait TryScribeStaticStr {
 /// preferred over this trait because it avoids unnecessary allocations.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// `#[derive(ScribeString)]` provided by the [enumscribe_derive] crate instead.
 ///
 /// This trait can only be used if none of the enum's variants use `ignore`.
 pub trait ScribeString {
@@ -210,7 +216,7 @@ pub trait ScribeString {
 /// allocations.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// `#[derive(TryScribeString)]` provided by the [enumscribe_derive] crate instead.
 pub trait TryScribeString {
     fn try_scribe(&self) -> Option<String>;
 }
@@ -218,7 +224,7 @@ pub trait TryScribeString {
 /// Trait for converting an enum to a clone-on-write string.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// `#[derive(ScribeCowStr)]` provided by the [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -234,10 +240,10 @@ pub trait ScribeCowStr {
     fn scribe(&self) -> Cow<'static, str>;
 }
 
-// Trait for converting an enum to a clone-on-write string, or `None` if the conversion fails.
+/// Trait for converting an enum to a clone-on-write string, or `None` if the conversion fails.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// `#[derive(TryScribeCowStr)]` provided by the [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -253,10 +259,35 @@ pub trait TryScribeCowStr {
     fn try_scribe(&self) -> Option<Cow<'static, str>>;
 }
 
+/// Trait for converting from a string to an enum.
+///
+/// Like all of the traits provided by enumscribe, this should not be implemented manually; use
+/// `#[derive(Unscribe)]` provided by the [enumscribe_derive] crate instead.
+///
+/// When deriving this trait, you may specify the string that should map to a particular variant
+/// by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name of the variant
+/// will be used instead.
+///
+/// Annotating a variant with `#[enumscribe(case_insensitive)]` will cause case insensitive matching
+/// to be used for that variant. If it is omitted, matching will be case sensitive.
+///
+/// For this trait to be derived, there must be a variant marked with `#[enumscribe(other)]`.
+/// If you do not have such a variant, try deriving [TryUnscribe] instead.
 pub trait Unscribe: Sized {
     fn unscribe(to_unscribe: &str) -> Self;
 }
 
+/// Trait for converting from a string to an enum, or `None` if the conversion fails.
+///
+/// Like all of the traits provided by enumscribe, this should not be implemented manually; use
+/// `#[derive(TryUnscribe)]` provided by the [enumscribe_derive] crate instead.
+///
+/// Annotating a variant with `#[enumscribe(case_insensitive)]` will cause case insensitive matching
+/// to be used for that variant. If it is omitted, matching will be case sensitive.
+///
+/// When deriving this trait, you may specify the string that should map to a particular variant
+/// by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name of the variant
+/// will be used instead.
 pub trait TryUnscribe: Sized {
     fn try_unscribe(to_unscribe: &str) -> Option<Self>;
 }

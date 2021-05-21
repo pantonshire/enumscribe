@@ -5,6 +5,7 @@ authors = ["Tom Panton <pantonshire@gmail.com>"]
 edition = "2018"
 license = "MIT"
 repository = "https://github.com/Pantonshire/enumscribe"
+readme = "../README.md"
 description = "Procedural macros for converting between enums and strings"
 
 [lib]

@@ -1,5 +1,6 @@
-//! Derive macros for the traits provided by enumscribe, to help you easily convert your enums
-//! to strings and vice-versa.
+//! Derive macros for the traits provided by `enumscribe`, to help you easily convert your enums
+//! to strings and vice-versa. See the `enumscribe` crate's documentation for information on
+//! deriving these traits.
 
 use proc_macro::TokenStream;
 
