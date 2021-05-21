@@ -1,4 +1,7 @@
 # enumscribe
+
+[![Build Status](https://travis-ci.com/Pantonshire/enumscribe.svg?branch=main)](https://travis-ci.com/Pantonshire/enumscribe)
+
 This crate provides derive macros for converting between simple enums and strings. It also includes derive macros for [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) for simple enums.
 
 ## Usage
