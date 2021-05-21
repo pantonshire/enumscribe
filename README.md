@@ -9,7 +9,7 @@ converting a string to an enum.
 ```rust
 use enumscribe::{ScribeStaticStr, TryUnscribe};
 
-#[derive(ScribeStaticStr, TryUnscribe, PartialEq, Eq)]
+#[derive(ScribeStaticStr, TryUnscribe, PartialEq, Eq, Debug)]
 enum Airport {
     #[enumscribe(str = "LHR")]
     Heathrow,
@@ -35,7 +35,7 @@ The `#[enumscribe(case_insensitive)]` attribute can be used to make the "Unscrib
 ```rust
 use enumscribe::TryUnscribe;
 
-#[derive(TryUnscribe, PartialEq, Eq)]
+#[derive(TryUnscribe, PartialEq, Eq, Debug)]
 enum Website {
     #[enumscribe(str = "github.com", case_insensitive)]
     Github,
@@ -55,7 +55,7 @@ use std::borrow::Cow;
 
 use enumscribe::{Unscribe, ScribeCowStr};
 
-#[derive(ScribeCowStr, Unscribe, PartialEq, Eq)]
+#[derive(ScribeCowStr, Unscribe, PartialEq, Eq, Debug)]
 enum Website {
     #[enumscribe(str = "github.com", case_insensitive)]
     Github,
@@ -65,16 +65,16 @@ enum Website {
     Other(String),
 }
 
-// Note that we don't need to use an Option any more!
+// Note that we don't need to use an Option anymore!
 assert_eq!(Website::unscribe("github.com"), Website::Github);
 
 // Unbelievably, there exist websites other than github and crates.io
 assert_eq!(Website::unscribe("stackoverflow.com"), Website::Other("stackoverflow.com".to_owned()));
 
-// We can't scribe to a &'static str any more, so we use a Cow<'static, str> instead
-assert_eq!(Website::Github.scribe(), Cow::Borrowed("github.com"));
+// We can't scribe to a &'static str anymore, so we use a Cow<'static, str> instead
+assert_eq!(Website::Github.scribe(), Cow::Borrowed::<'static, str>("github.com"));
 
-assert_eq!(Website::Other("owasp.org".to_owned()).scribe(), Cow::Owned("owasp.org".to_owned()));
+assert_eq!(Website::Other("owasp.org".to_owned()).scribe(), Cow::Owned::<'static, str>("owasp.org".to_owned()));
 ```
 
 ### Ignoring variants
@@ -85,7 +85,7 @@ However, this means that converting the enum to a string can fail, so you must u
 ```rust
 use enumscribe::TryScribeStaticStr;
 
-#[derive(TryScribeStaticStr, PartialEq, Eq)]
+#[derive(TryScribeStaticStr, PartialEq, Eq, Debug)]
 enum Airport {
     #[enumscribe(str = "LHR")]
     Heathrow,
@@ -110,7 +110,7 @@ use serde::{Serialize, Deserialize};
 
 use enumscribe::{EnumSerialize, EnumDeserialize};
 
-#[derive(EnumSerialize, EnumDeserialize, PartialEq, Eq)]
+#[derive(EnumSerialize, EnumDeserialize, PartialEq, Eq, Clone, Copy, Debug)]
 enum Airport {
     #[enumscribe(str = "LHR")]
     Heathrow,
@@ -120,7 +120,7 @@ enum Airport {
     Luton,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 struct Flight {
     takeoff: Airport,
     landing: Airport,
@@ -134,8 +134,9 @@ let flight = Flight {
 
 let flight_json = r#"{"takeoff":"LHR","landing":"LGW"}"#;
 
-assert_eq!(serde_json::to_string(&flight), Ok(flight_json.to_owned()));
-assert_eq!(serde_json::from_string(flight_json), Ok(flight));
+assert_eq!(serde_json::to_string(&flight).unwrap(), flight_json.to_owned());
+
+assert_eq!(serde_json::from_str::<Flight>(flight_json).unwrap(), flight);
 ```
 
 ## Traits table
