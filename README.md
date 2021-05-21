@@ -106,6 +106,8 @@ assert_eq!(Airport::Luton.try_scribe(), Some("LTN"));
 You can derive [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) using the same syntax:
 
 ```rust
+use serde::{Serialize, Deserialize};
+
 use enumscribe::{EnumSerialize, EnumDeserialize};
 
 #[derive(EnumSerialize, EnumDeserialize, PartialEq, Eq)]
@@ -117,6 +119,23 @@ enum Airport {
     #[enumscribe(str = "LTN")]
     Luton,
 }
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+struct Flight {
+    takeoff: Airport,
+    landing: Airport,
+}
+
+// There are probably much more economical ways of making this journey
+let flight = Flight {
+    takeoff: Airport::Heathrow,
+    landing: Airport::Gatwick,
+};
+
+let flight_json = r#"{"takeoff":"LHR","landing":"LGW"}"#;
+
+assert_eq!(serde_json::to_string(&flight), Ok(flight_json.to_owned()));
+assert_eq!(serde_json::from_string(flight_json), Ok(flight));
 ```
 
 ## Traits table
