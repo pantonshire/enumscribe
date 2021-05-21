@@ -556,11 +556,12 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     let deserialized_str_ident = quote! { __enumscribe_deserialized_str };
 
     let variant_strings = parsed_enum.variants.iter()
-        .filter(|variant| match &variant.v_type {
-            VariantType::Ignore => false,
-            _ => true
+        .map(|variant| match &variant.v_type {
+            VariantType::Named { name, .. } => Some(name.as_str()),
+            _ => None
         })
-        .map(|variant| variant.data.ident.to_string())
+        .filter(|name| name.is_some())
+        .map(|name| name.unwrap())
         .collect::<Vec<_>>();
 
     let main_match = proc_try!(gen_unscribe_match(
