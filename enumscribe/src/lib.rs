@@ -169,7 +169,8 @@ use std::borrow::Cow;
 /// Trait for converting an enum to a static string slice.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(ScribeStaticStr)]`](derive.ScribeStaticStr.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -185,7 +186,8 @@ pub trait ScribeStaticStr {
 /// Trait for converting an enum to a static string slice, or `None` if the conversion fails.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(TryScribeStaticStr)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(TryScribeStaticStr)]`](derive.TryScribeStaticStr.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -204,7 +206,8 @@ pub trait TryScribeStaticStr {
 /// preferred over this trait because it avoids unnecessary allocations.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeString)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(ScribeString)]`](derive.ScribeString.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// This trait can only be used if none of the enum's variants use `ignore`.
 pub trait ScribeString {
@@ -216,7 +219,8 @@ pub trait ScribeString {
 /// allocations.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(TryScribeString)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(TryScribeString)]`](derive.TryScribeString.html) provided by the
+/// [enumscribe_derive] crate instead.
 pub trait TryScribeString {
     fn try_scribe(&self) -> Option<String>;
 }
@@ -224,7 +228,8 @@ pub trait TryScribeString {
 /// Trait for converting an enum to a clone-on-write string.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(ScribeCowStr)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(ScribeCowStr)]`](derive.ScribeCowStr.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -243,7 +248,8 @@ pub trait ScribeCowStr {
 /// Trait for converting an enum to a clone-on-write string, or `None` if the conversion fails.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(TryScribeCowStr)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(TryScribeCowStr)]`](derive.TryScribeCowStr.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that a particular variant should be
 /// converted to by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name
@@ -262,7 +268,8 @@ pub trait TryScribeCowStr {
 /// Trait for converting from a string to an enum.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(Unscribe)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(Unscribe)]`](derive.Unscribe.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// When deriving this trait, you may specify the string that should map to a particular variant
 /// by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name of the variant
@@ -280,7 +287,8 @@ pub trait Unscribe: Sized {
 /// Trait for converting from a string to an enum, or `None` if the conversion fails.
 ///
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
-/// `#[derive(TryUnscribe)]` provided by the [enumscribe_derive] crate instead.
+/// [`#[derive(TryUnscribe)]`](derive.TryUnscribe.html) provided by the
+/// [enumscribe_derive] crate instead.
 ///
 /// Annotating a variant with `#[enumscribe(case_insensitive)]` will cause case insensitive matching
 /// to be used for that variant. If it is omitted, matching will be case sensitive.

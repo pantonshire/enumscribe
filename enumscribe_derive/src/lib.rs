@@ -1,6 +1,7 @@
 //! Derive macros for the traits provided by `enumscribe`, to help you easily convert your enums
-//! to strings and vice-versa. See the `enumscribe` crate's documentation for information on
-//! deriving these traits.
+//! to strings and vice-versa.
+//!
+//! See the documentation for the `enumscribe` crate for usage examples.
 
 use proc_macro::TokenStream;
 
@@ -269,6 +270,30 @@ fn gen_unscribe_match<F, G, E>(
     Ok(main_match)
 }
 
+/// Derives `enumscribe::ScribeStaticStr` for an enum. This allows the enum to be converted to
+/// a `&'static str` using the `scribe()` method.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
+/// should be converted to (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// Other derive macros in this crate allow you to use attributes like `#[enumscribe(other)]`
+/// and `#[enumscribe(ignore)]`, where `other` allows you to specify a variant that should be used
+/// to store strings that could not be matched to any other variant, and `ignore` lets you tell
+/// `enumscribe` not to consider a particular variant when deriving traits. However, using either
+/// of these attributes when deriving `ScribeStaticStr` will cause a compile-time error; if these
+/// attributes are used, then there are some cases where it would be impossible to return
+/// a meaningful `&'static str`.
+///
+/// If you want to use `#[enumscribe(other)]`, try deriving
+/// [`ScribeCowStr`](derive.ScribeCowStr.html) instead.
+///
+/// If you want to use `#[enumscribe(ignore)]`, try deriving
+/// [`TryScribeStaticStr`](derive.TryScribeStaticStr.html) instead.
+///
+/// If you want to use both, try deriving
+/// [`TryScribeCowStr`](derive.TryScribeCowStr.html) instead.
 #[proc_macro_derive(ScribeStaticStr, attributes(enumscribe))]
 pub fn derive_scribe_static_str(input: TokenStream) -> TokenStream {
     gen_scribe_impl(
@@ -296,6 +321,21 @@ pub fn derive_scribe_static_str(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::TryScribeStaticStr` for an enum. This allows the enum to be converted to
+/// a `Option<&'static str>` using the `try_scribe()` method.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
+/// should be converted to (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// This is a version of [`ScribeStaticStr`](derive.ScribeStaticStr.html) intended to be used if
+/// you have one or more variants annotated with `#[enumscribe(ignore)]`. Calling `try_scribe()`
+/// on an ignored variant will always return `None`.
+///
+/// Like [`ScribeStaticStr`](derive.ScribeStaticStr.html), you may not use `#[enumscribe(other)]`
+/// when deriving this trait. If you want to use `other`, try deriving
+/// [`TryScribeCowStr`](derive.TryScribeCowStr.html) instead.
 #[proc_macro_derive(TryScribeStaticStr, attributes(enumscribe))]
 pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
@@ -319,6 +359,15 @@ pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::ScribeString` for an enum. This allows the enum to be converted to
+/// a `String` using the `scribe()` method.
+///
+/// This behaves almost identically to [`ScribeCowStr`](derive.ScribeCowStr.html), except the
+/// return type is `String` instead of `Cow<'static, str>`.
+///
+/// Since a `String` is returned, an allocation must always be performed, which is wasteful.
+/// [`ScribeCowStr`](derive.ScribeCowStr.html) should be preferred because it avoids unnecessary
+/// allocations.
 #[proc_macro_derive(ScribeString, attributes(enumscribe))]
 pub fn derive_scribe_string(input: TokenStream) -> TokenStream {
     gen_scribe_impl(
@@ -345,6 +394,15 @@ pub fn derive_scribe_string(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::TryScribeString` for an enum. This allows the enum to be converted to
+/// a `Option<String>` using the `try_scribe()` method.
+///
+/// This behaves almost identically to [`TryScribeCowStr`](derive.TryScribeCowStr.html), except the
+/// return type is `Option<String>` instead of `Option<Cow<'static, str>>`.
+///
+/// Since a `String` is returned, an allocation must always be performed, which is wasteful.
+/// [`TryScribeCowStr`](derive.TryScribeCowStr.html) should be preferred because it avoids
+/// unnecessary allocations.
 #[proc_macro_derive(TryScribeString, attributes(enumscribe))]
 pub fn derive_try_scribe_string(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
@@ -369,6 +427,25 @@ pub fn derive_try_scribe_string(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::ScribeCowStr` for an enum. This allows the enum to be converted to
+/// a `Cow<'static, str>` using the `scribe()` method.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
+/// should be converted to (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// This derive also supports annotating a variant with `#[enumscibe(other)]`, which is useful
+/// because it is required to derive [`Unscribe`](derive.Unscribe.html). This allows you to
+/// specify that a variant should be used to store strings that could not be matched to any other
+/// variant when unscribing. The variant should have a single field, which should have type
+/// `String`.
+///
+/// If you do not want to use `#[enumscribe(other)]`, you should derive
+/// [`ScribeStaticStr`](derive.ScribeStaticStr.html) instead.
+///
+/// This derive does not support ignoring variants with `#[enumscribe(ignore)]`. If you want to
+/// ignore variants, try deriving [`TryScribeCowStr`](derive.TryScribeCowStr.html) instead.
 #[proc_macro_derive(ScribeCowStr, attributes(enumscribe))]
 pub fn derive_scribe_cow_str(input: TokenStream) -> TokenStream {
     gen_scribe_impl(
@@ -397,6 +474,26 @@ pub fn derive_scribe_cow_str(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::TryScribeCowStr` for an enum. This allows the enum to be converted to
+/// a `Option<Cow<'static, str>>` using the `try_scribe()` method.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
+/// should be converted to (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// This is a version of [`ScribeCowStr`](derive.ScribeCowStr.html) intended to be used if
+/// you have one or more variants annotated with `#[enumscribe(ignore)]`. Calling `try_scribe()`
+/// on an ignored variant will always return `None`.
+///
+/// This derive also supports annotating a variant with `#[enumscibe(other)]`, which is useful
+/// because it is required to derive [`Unscribe`](derive.Unscribe.html). This allows you to
+/// specify that a variant should be used to store strings that could not be matched to any other
+/// variant when unscribing. The variant should have a single field, which should have type
+/// `String`.
+///
+/// If you do not want to use `#[enumscribe(other)]`, you should derive
+/// [`TryScribeStaticStr`](derive.TryScribeStaticStr.html) instead.
 #[proc_macro_derive(TryScribeCowStr, attributes(enumscribe))]
 pub fn derive_try_scribe_cow_str(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
@@ -423,6 +520,27 @@ pub fn derive_try_scribe_cow_str(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::Unscribe` for an enum. This allows a `&str` to be converted to the
+/// enum using the `unscribe()` associated function.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string should
+/// convert to the variant (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// You may annotate a variant with `#[enumscribe(case_insensitive)]` to use case-insensitive
+/// matching for that variant. For example, if a variant is annotated with
+/// `#[enumscribe(str = "baa", case_insensitive)]`, then strings like `"baa"`, `"BAA"`, `"bAa"`
+/// etc. will all be matched to that variant.
+///
+/// In order to derive this trait, you must have exactly one variant annotated with
+/// `#[enumscribe(other)]`. This variant will be used to store any string that could not be matched
+/// to any of the other variants. The variant must have exactly one field, which should have type
+/// `String`. Both named (`Variant { name: String }`) and unnamed (`Variant(String)`) fields are
+/// allowed.
+///
+/// If you do not want to use `#[enumscribe(other)]`, try deriving
+/// [`TryUnscribe`](derive.TryUnscribe.html) instead.
 #[proc_macro_derive(Unscribe, attributes(enumscribe))]
 pub fn derive_unscribe(input: TokenStream) -> TokenStream {
     gen_unscribe_impl(
@@ -446,6 +564,24 @@ pub fn derive_unscribe(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `enumscribe::TryUnscribe` for an enum. This allows a `&str` to be converted to an
+/// `Option` of the enum using the `try_unscribe()` associated function.
+///
+/// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string should
+/// convert to the variant (replacing `"foo"` with a string of your choice). If this is omitted,
+/// the name of the variant will be used instead. Using the same string for two variants of the
+/// same enum will cause a compile-time error.
+///
+/// You may annotate a variant with `#[enumscribe(case_insensitive)]` to use case-insensitive
+/// matching for that variant. For example, if a variant is annotated with
+/// `#[enumscribe(str = "baa", case_insensitive)]`, then strings like `"baa"`, `"BAA"`, `"bAa"`
+/// etc. will all be matched to that variant.
+///
+/// Unlike [`Unscribe`](derive.Unscribe.html), there is no requirement to have a variant annotated
+/// with `#[enumscribe(other)]`, although you may use it if you want. If there is an `other`
+/// variant, then the `other` variant will be returned when a string could not be matched to any
+/// other variant. If there is no `other` variant, `None` will be returned when a string could not
+/// be matched to any other variant.
 #[proc_macro_derive(TryUnscribe, attributes(enumscribe))]
 pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
     gen_unscribe_impl(
@@ -463,6 +599,15 @@ pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
     )
 }
 
+/// Derives `serde::Serialize` for an enum.
+///
+/// The enum will be serialized to a string. You can specify what string should be used to
+/// represent a particular variant by using `#[enumscribe(str = "foo")]`, just like the other
+/// derive macros in this crate.
+///
+/// This derive also allows you to use `#[enumscribe(other)]` and `#[enumscribe(ignore)]`.
+/// Trying to serialize an ignored variant will result in an error being returned. Serializing
+/// an `other` variant will simply use whatever the value of its field is.
 #[cfg(feature = "serde")]
 #[proc_macro_derive(EnumSerialize, attributes(enumscribe))]
 pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
@@ -540,6 +685,22 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
     }).into()
 }
 
+/// Derives `serde::Deserialize` for an enum.
+///
+/// The enum will be deserialized from a string. If the input was not a valid string, an error
+/// will be returned. You can specify what string should map to a particular variant by using
+/// `#[enumscribe(str = "foo")]`, just like the other derive macros in this crate. You can also
+/// use `#[enumscribe(case_insensitive)]` to use case-insensitive matching for a variant, like
+/// [`Unscribe`](derive.Unscribe.html) and [`TryUnscribe`](derive.TryUnscribe.html).
+///
+/// Also like [`Unscribe`](derive.Unscribe.html), you can annotate a variant with
+/// `#[enumscribe(other)]`. If included, the `other` variant will be used to store strings that
+/// could not be matched to any other variant. The `other` variant should have a single field,
+/// which should have type `String`. If an `other` variant is not included, an error will be
+/// returned when a string could not be matched to any variant.
+///
+/// This derive also allows you to use `#[enumscribe(ignore)]`. No string will ever deserialize
+/// to an ignored variant.
 #[cfg(feature = "serde")]
 #[proc_macro_derive(EnumDeserialize, attributes(enumscribe))]
 pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
