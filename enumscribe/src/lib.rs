@@ -129,6 +129,7 @@
 //!     landing: Airport,
 //! }
 //!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // There are probably much more economical ways of making this journey
 //! let flight = Flight {
 //!     takeoff: Airport::Heathrow,
@@ -137,11 +138,13 @@
 //!
 //! let flight_json = r#"{"takeoff":"LHR","landing":"LGW"}"#;
 //!
-//! assert_eq!(serde_json::to_string(&flight).unwrap(),
+//! assert_eq!(serde_json::to_string(&flight)?,
 //!            flight_json.to_owned());
 //!
-//! assert_eq!(serde_json::from_str::<Flight>(flight_json).unwrap(),
+//! assert_eq!(serde_json::from_str::<Flight>(flight_json)?,
 //!            flight);
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! Here is a table to show which traits you should derive for your enum:
@@ -179,6 +182,23 @@ use std::borrow::Cow;
 /// This trait can only be used if none of the enum's variants use `ignore` or `other`. If you have
 /// variants that use `ignore`, use [TryScribeStaticStr] instead. If you have variants that use
 /// `other`, use [ScribeCowStr]. If you have variants that use both, use [TryScribeCowStr].
+///
+/// ```
+/// use enumscribe::ScribeStaticStr;
+///
+/// #[derive(ScribeStaticStr, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR")]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     UnnamedAirport,
+/// }
+///
+/// assert_eq!(Airport::Heathrow.scribe(), "LHR");
+/// assert_eq!(Airport::Gatwick.scribe(), "LGW");
+/// assert_eq!(Airport::UnnamedAirport.scribe(), "UnnamedAirport");
+/// ```
 pub trait ScribeStaticStr {
     fn scribe(&self) -> &'static str;
 }
@@ -198,6 +218,23 @@ pub trait ScribeStaticStr {
 ///
 /// This trait can only be used if none of the enum's variants use `other`. If you have variants
 /// that use `other`, use [TryScribeCowStr] instead.
+///
+/// ```
+/// use enumscribe::TryScribeStaticStr;
+///
+/// #[derive(TryScribeStaticStr, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR")]
+///     Heathrow,
+///     #[enumscribe(ignore)]
+///     Gatwick,
+///     UnnamedAirport,
+/// }
+///
+/// assert_eq!(Airport::Heathrow.try_scribe(), Some("LHR"));
+/// assert_eq!(Airport::Gatwick.try_scribe(), None);
+/// assert_eq!(Airport::UnnamedAirport.try_scribe(), Some("UnnamedAirport"));
+/// ```
 pub trait TryScribeStaticStr {
     fn try_scribe(&self) -> Option<&'static str>;
 }
@@ -210,6 +247,24 @@ pub trait TryScribeStaticStr {
 /// [enumscribe_derive] crate instead.
 ///
 /// This trait can only be used if none of the enum's variants use `ignore`.
+///
+/// ```
+/// use enumscribe::ScribeString;
+///
+/// #[derive(ScribeString, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR")]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     #[enumscribe(other)]
+///     Other(String),
+/// }
+///
+/// assert_eq!(Airport::Heathrow.scribe(), "LHR".to_owned());
+/// assert_eq!(Airport::Gatwick.scribe(), "LGW".to_owned());
+/// assert_eq!(Airport::Other("STN".to_owned()).scribe(), "STN".to_owned());
+/// ```
 pub trait ScribeString {
     fn scribe(&self) -> String;
 }
@@ -221,6 +276,24 @@ pub trait ScribeString {
 /// Like all of the traits provided by enumscribe, this should not be implemented manually; use
 /// [`#[derive(TryScribeString)]`](derive.TryScribeString.html) provided by the
 /// [enumscribe_derive] crate instead.
+///
+/// ```
+/// use enumscribe::TryScribeString;
+///
+/// #[derive(TryScribeString, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(ignore)]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     #[enumscribe(other)]
+///     Other(String),
+/// }
+///
+/// assert_eq!(Airport::Heathrow.try_scribe(), None);
+/// assert_eq!(Airport::Gatwick.try_scribe(), Some("LGW".to_owned()));
+/// assert_eq!(Airport::Other("STN".to_owned()).try_scribe(), Some("STN".to_owned()));
+/// ```
 pub trait TryScribeString {
     fn try_scribe(&self) -> Option<String>;
 }
@@ -241,6 +314,29 @@ pub trait TryScribeString {
 ///
 /// This trait can only be used if none of the enum's variants use `ignore`. If you have variants
 /// that use `ignore`, use [TryScribeCowStr] instead.
+///
+/// ```
+/// use std::borrow::Cow;
+///
+/// use enumscribe::ScribeCowStr;
+///
+/// #[derive(ScribeCowStr, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR")]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     #[enumscribe(other)]
+///     Other(String),
+/// }
+///
+/// assert_eq!(Airport::Heathrow.scribe(),
+///            Cow::Borrowed("LHR"));
+/// assert_eq!(Airport::Gatwick.scribe(),
+///            Cow::Borrowed("LGW"));
+/// assert_eq!(Airport::Other("STN".to_owned()).scribe(),
+///            Cow::Owned::<'static, str>("STN".to_owned()));
+/// ```
 pub trait ScribeCowStr {
     fn scribe(&self) -> Cow<'static, str>;
 }
@@ -261,6 +357,29 @@ pub trait ScribeCowStr {
 ///
 /// You may also annotate a variant with `#[enumscribe(ignore)]`, in which case attempting to
 /// convert the variant to a string will always result in `None`.
+///
+/// ```
+/// use std::borrow::Cow;
+///
+/// use enumscribe::TryScribeCowStr;
+///
+/// #[derive(TryScribeCowStr, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(ignore)]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     #[enumscribe(other)]
+///     Other(String),
+/// }
+///
+/// assert_eq!(Airport::Heathrow.try_scribe(),
+///            None);
+/// assert_eq!(Airport::Gatwick.try_scribe(),
+///            Some(Cow::Borrowed("LGW")));
+/// assert_eq!(Airport::Other("STN".to_owned()).try_scribe(),
+///            Some(Cow::Owned::<'static, str>("STN".to_owned())));
+/// ```
 pub trait TryScribeCowStr {
     fn try_scribe(&self) -> Option<Cow<'static, str>>;
 }
@@ -278,8 +397,33 @@ pub trait TryScribeCowStr {
 /// Annotating a variant with `#[enumscribe(case_insensitive)]` will cause case insensitive matching
 /// to be used for that variant. If it is omitted, matching will be case sensitive.
 ///
-/// For this trait to be derived, there must be a variant marked with `#[enumscribe(other)]`.
-/// If you do not have such a variant, try deriving [TryUnscribe] instead.
+/// For this trait to be derived, there must be a variant marked with `#[enumscribe(other)]`. This
+/// variant will be used to store strings that could not be matched to any other variant. It must
+/// have a single field, which should have type `String`. If you do not have such a variant, try
+/// deriving [TryUnscribe] instead.
+///
+/// ```
+/// use enumscribe::Unscribe;
+///
+/// #[derive(Unscribe, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR", case_insensitive)]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+///     #[enumscribe(other)]
+///     Other(String),
+/// }
+///
+/// assert_eq!(Airport::unscribe("LHR"), Airport::Heathrow);
+/// assert_eq!(Airport::unscribe("lhr"), Airport::Heathrow);
+///
+/// assert_eq!(Airport::unscribe("LGW"), Airport::Gatwick);
+/// assert_eq!(Airport::unscribe("lgw"), Airport::Other("lgw".to_owned()));
+///
+/// assert_eq!(Airport::unscribe("STN"), Airport::Other("STN".to_owned()));
+/// assert_eq!(Airport::unscribe("stn"), Airport::Other("stn".to_owned()));
+/// ```
 pub trait Unscribe: Sized {
     fn unscribe(to_unscribe: &str) -> Self;
 }
@@ -296,6 +440,27 @@ pub trait Unscribe: Sized {
 /// When deriving this trait, you may specify the string that should map to a particular variant
 /// by annotating it with `#[enumscribe(str = "foo")]`. If this is omitted, the name of the variant
 /// will be used instead.
+///
+/// ```
+/// use enumscribe::TryUnscribe;
+///
+/// #[derive(TryUnscribe, PartialEq, Eq, Debug)]
+/// enum Airport {
+///     #[enumscribe(str = "LHR", case_insensitive)]
+///     Heathrow,
+///     #[enumscribe(str = "LGW")]
+///     Gatwick,
+/// }
+///
+/// assert_eq!(Airport::try_unscribe("LHR"), Some(Airport::Heathrow));
+/// assert_eq!(Airport::try_unscribe("lhr"), Some(Airport::Heathrow));
+///
+/// assert_eq!(Airport::try_unscribe("LGW"), Some(Airport::Gatwick));
+/// assert_eq!(Airport::try_unscribe("lgw"), None);
+///
+/// assert_eq!(Airport::try_unscribe("STN"), None);
+/// assert_eq!(Airport::try_unscribe("stn"), None);
+/// ```
 pub trait TryUnscribe: Sized {
     fn try_unscribe(to_unscribe: &str) -> Option<Self>;
 }
