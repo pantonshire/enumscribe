@@ -5,7 +5,6 @@ use proc_macro2::Span;
 use syn::{Attribute, Ident, Lit, Token};
 use syn::parse::{Parse, ParseBuffer, ParseStream};
 use syn::parse::discouraged::Speculative;
-use syn::token::Token;
 
 use crate::error::{MacroError, MacroResult, ValueTypeError, ValueTypeResult};
 
