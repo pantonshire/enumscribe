@@ -1,7 +1,10 @@
-//! Derive macros for the traits provided by `enumscribe`, to help you easily convert your enums
-//! to strings and vice-versa.
+//! Derive macros for the traits provided by [`enumscribe`](https://docs.rs/enumscribe), to
+//! help you easily convert your enums to strings and vice-versa.
 //!
-//! See the documentation for the `enumscribe` crate for usage examples.
+//! See the [documentation for the `enumscribe` crate](https://docs.rs/crate/enumscribe) for usage
+//! examples.
+
+#![deny(missing_docs)]
 
 use proc_macro::TokenStream;
 
@@ -270,7 +273,7 @@ fn gen_unscribe_match<F, G, E>(
     Ok(main_match)
 }
 
-/// Derives `enumscribe::ScribeStaticStr` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::ScribeStaticStr`](https://docs.rs/enumscribe/latest/enumscribe/trait.ScribeStaticStr.html) for an enum. This allows the enum to be converted to
 /// a `&'static str` using the `scribe()` method.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
@@ -321,7 +324,7 @@ pub fn derive_scribe_static_str(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::TryScribeStaticStr` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::TryScribeStaticStr`](https://docs.rs/enumscribe/latest/enumscribe/trait.TryScribeStaticStr.html) for an enum. This allows the enum to be converted to
 /// a `Option<&'static str>` using the `try_scribe()` method.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
@@ -359,7 +362,7 @@ pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::ScribeString` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::ScribeString`](https://docs.rs/enumscribe/latest/enumscribe/trait.ScribeString.html) for an enum. This allows the enum to be converted to
 /// a `String` using the `scribe()` method.
 ///
 /// This behaves almost identically to [`ScribeCowStr`](derive.ScribeCowStr.html), except the
@@ -394,7 +397,7 @@ pub fn derive_scribe_string(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::TryScribeString` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::TryScribeString`](https://docs.rs/enumscribe/latest/enumscribe/trait.TryScribeString.html) for an enum. This allows the enum to be converted to
 /// a `Option<String>` using the `try_scribe()` method.
 ///
 /// This behaves almost identically to [`TryScribeCowStr`](derive.TryScribeCowStr.html), except the
@@ -427,7 +430,7 @@ pub fn derive_try_scribe_string(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::ScribeCowStr` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::ScribeCowStr`](https://docs.rs/enumscribe/latest/enumscribe/trait.ScribeCowStr.html) for an enum. This allows the enum to be converted to
 /// a `Cow<'static, str>` using the `scribe()` method.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
@@ -474,7 +477,7 @@ pub fn derive_scribe_cow_str(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::TryScribeCowStr` for an enum. This allows the enum to be converted to
+/// Derives [`enumscribe::TryScribeCowStr`](https://docs.rs/enumscribe/latest/enumscribe/trait.TryScribeCowStr.html) for an enum. This allows the enum to be converted to
 /// a `Option<Cow<'static, str>>` using the `try_scribe()` method.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string the variant
@@ -520,7 +523,7 @@ pub fn derive_try_scribe_cow_str(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::Unscribe` for an enum. This allows a `&str` to be converted to the
+/// Derives [`enumscribe::Unscribe`](https://docs.rs/enumscribe/latest/enumscribe/trait.Unscribe.html) for an enum. This allows a `&str` to be converted to the
 /// enum using the `unscribe()` associated function.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string should
@@ -564,7 +567,7 @@ pub fn derive_unscribe(input: TokenStream) -> TokenStream {
     )
 }
 
-/// Derives `enumscribe::TryUnscribe` for an enum. This allows a `&str` to be converted to an
+/// Derives [`enumscribe::TryUnscribe`](https://docs.rs/enumscribe/latest/enumscribe/trait.TryUnscribe.html) for an enum. This allows a `&str` to be converted to an
 /// `Option` of the enum using the `try_unscribe()` associated function.
 ///
 /// You may annotate variants with `#[enumscribe(str = "foo")]` to specify what string should

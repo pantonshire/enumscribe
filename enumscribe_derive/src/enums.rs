@@ -195,7 +195,7 @@ pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
             }.insert(lowercase_name);
 
             // Return an error if the variant has any fields
-            if variant.fields.len() != 0 {
+            if !variant.fields.is_empty() {
                 let variant_ident = variant.ident.to_string();
                 return Err(MacroError::new(
                     format!(

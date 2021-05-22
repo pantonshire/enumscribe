@@ -1,6 +1,6 @@
 [package]
 name = "enumscribe_derive"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Tom Panton <pantonshire@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -17,4 +17,5 @@ syn = "1.0"
 quote = "1.0"
 
 [features]
+default = ["serde"]
 serde = []

@@ -2,11 +2,27 @@
 
 [![Build Status](https://travis-ci.com/Pantonshire/enumscribe.svg?branch=main)](https://travis-ci.com/Pantonshire/enumscribe)
 
-This crate provides derive macros for converting between simple enums and strings. It also includes derive macros for [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and [`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) for simple enums.
+This crate provides derive macros for converting between simple enums and strings. It also includes derive macros for
+[`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and
+[`serde::Deserialize`](https://docs.serde.rs/serde/trait.Deserialize.html) for simple enums.
+
+## Adding enumscribe to your project
+Add to your Cargo.toml file:
+
+```toml
+[dependencies]
+enumscribe = "0.1"
+```
+
+Derive macros and [`serde`](https://crates.io/crates/serde) support are enabled by default. They can be disabled by
+setting `default-features = false`.
+
+It is also possible to use the `enumscribe_derive` crate on its own without using the `enumscribe` crate. However,
+doing so means that you will only be able to derive `serde::Serialize` and `serde::Deserialize`.
 
 ## Usage
-There are a variety of different traits that you can derive. The "Scribe" traits are for converting from an enum to a string, and the "Unscribe" traits are for
-converting a string to an enum.
+There are a variety of different traits that you can derive. The "Scribe" traits are for converting from an enum to a
+string, and the "Unscribe" traits are for converting a string to an enum.
 
 ### Basic usage
 ```rust
@@ -29,11 +45,12 @@ assert_eq!(Airport::Heathrow.scribe(), "LHR");
 assert_eq!(Airport::try_unscribe("LGW"), Some(Airport::Gatwick));
 ```
 
-The `#[enumscribe(str = "...")]` allows us to specify what string should be used to represent a particular variant. If this is omitted, the name of the variant
-will be used instead.
+The `#[enumscribe(str = "...")]` allows us to specify what string should be used to represent a particular variant. If
+this is omitted, the name of the variant will be used instead.
 
 ### Case insensitivity
-The `#[enumscribe(case_insensitive)]` attribute can be used to make the "Unscribe" traits perform case-insensitive matching for a variant:
+The `#[enumscribe(case_insensitive)]` attribute can be used to make the "Unscribe" traits perform case-insensitive
+matching for a variant:
 
 ```rust
 use enumscribe::TryUnscribe;
@@ -50,8 +67,8 @@ assert_eq!(Website::try_unscribe("GiThUb.CoM"), Some(Website::Github));
 ```
 
 ### "other" variant
-You can also have a variant which stores strings that could not be matched to any other variant. This is done using the `#[enumscribe(other)]` attribute.
-The variant should have a single field, which is a `String`.
+You can also have a variant which stores strings that could not be matched to any other variant. This is done using the
+`#[enumscribe(other)]` attribute. The variant should have a single field, which is a `String`.
 
 ```rust
 use std::borrow::Cow;

@@ -162,6 +162,8 @@
 //! Therefore, you should prefer the `ScribeCowStr` traits over the `ScribeString` traits, unless
 //! you *really* don't want to use a `Cow` for whatever reason.
 
+#![deny(missing_docs)]
+
 #[macro_use]
 extern crate enumscribe_derive;
 
@@ -200,6 +202,11 @@ use std::borrow::Cow;
 /// assert_eq!(Airport::UnnamedAirport.scribe(), "UnnamedAirport");
 /// ```
 pub trait ScribeStaticStr {
+    /// Converts this enum to a `&'static str`.
+    ///
+    /// The string returned for a particular variant is determined by the
+    /// `#[enumscribe(str = "...")]` attribute, or the name of the variant if the attribute
+    /// is omitted.
     fn scribe(&self) -> &'static str;
 }
 
@@ -236,6 +243,11 @@ pub trait ScribeStaticStr {
 /// assert_eq!(Airport::UnnamedAirport.try_scribe(), Some("UnnamedAirport"));
 /// ```
 pub trait TryScribeStaticStr {
+    /// Converts this enum to a `Option<&'static str>`.
+    ///
+    /// Calling this method on a variant marked with `#[enumscribe(ignore)]` will return `None`.
+    /// Calling it on any other variant will return `Some("...")`, where `"..."` is the string
+    /// specified by the `#[enumscribe(str = "...")]` attribute.
     fn try_scribe(&self) -> Option<&'static str>;
 }
 
@@ -266,6 +278,12 @@ pub trait TryScribeStaticStr {
 /// assert_eq!(Airport::Other("STN".to_owned()).scribe(), "STN".to_owned());
 /// ```
 pub trait ScribeString {
+    /// Converts this enum to an allocated `String`.
+    ///
+    /// When called on a variant marked with `#[enumscribe(other)]`, the variant's field will be
+    /// returned. For other variants, the string returned is determined by the
+    /// `#[enumscribe(str = "...")]` attribute, or the name of the variant if the attribute is
+    /// omitted.
     fn scribe(&self) -> String;
 }
 
@@ -295,6 +313,14 @@ pub trait ScribeString {
 /// assert_eq!(Airport::Other("STN".to_owned()).try_scribe(), Some("STN".to_owned()));
 /// ```
 pub trait TryScribeString {
+    /// Converts this enum to an allocated `String`.
+    ///
+    /// Calling this method on a variant marked with `#[enumscribe(ignore)]` will return `None`.
+    ///
+    /// When called on a variant marked with `#[enumscribe(other)]`, the variant's field will be
+    /// returned. For other variants, the string returned is determined by the
+    /// `#[enumscribe(str = "...")]` attribute, or the name of the variant if the attribute is
+    /// omitted.
     fn try_scribe(&self) -> Option<String>;
 }
 
@@ -338,6 +364,12 @@ pub trait TryScribeString {
 ///            Cow::Owned::<'static, str>("STN".to_owned()));
 /// ```
 pub trait ScribeCowStr {
+    /// Converts this enum to a `Cow<'static, str>`.
+    ///
+    /// When called on a variant marked with `#[enumscribe(other)]`, the variant's field will be
+    /// returned as a `Cow::Owned`. For other variants, a `Cow::Borrowed` is returned, containing
+    /// a static string slice determined by the `#[enumscribe(str = "...")]` attribute, or the name
+    /// of the variant if the attribute is omitted.
     fn scribe(&self) -> Cow<'static, str>;
 }
 
@@ -381,6 +413,14 @@ pub trait ScribeCowStr {
 ///            Some(Cow::Owned::<'static, str>("STN".to_owned())));
 /// ```
 pub trait TryScribeCowStr {
+    /// Converts this enum to a `Option<Cow<'static, str>>`.
+    ///
+    /// Calling this method on a variant marked with `#[enumscribe(ignore)]` will return `None`.
+    ///
+    /// When called on a variant marked with `#[enumscribe(other)]`, the variant's field will be
+    /// returned as a `Cow::Owned`. For other variants, a `Cow::Borrowed` is returned, containing
+    /// a static string slice determined by the `#[enumscribe(str = "...")]` attribute, or the name
+    /// of the variant if the attribute is omitted.
     fn try_scribe(&self) -> Option<Cow<'static, str>>;
 }
 
@@ -425,6 +465,11 @@ pub trait TryScribeCowStr {
 /// assert_eq!(Airport::unscribe("stn"), Airport::Other("stn".to_owned()));
 /// ```
 pub trait Unscribe: Sized {
+    /// Converts the given string to an enum variant.
+    ///
+    /// The given string is matched against the `#[enumscribe(str = "...")]` attribute for each
+    /// variant to determine which variant to return. If there was no successful match, the
+    /// variant marked with `#[enumscribe(other)]` will be returned instead.
     fn unscribe(to_unscribe: &str) -> Self;
 }
 
@@ -462,5 +507,12 @@ pub trait Unscribe: Sized {
 /// assert_eq!(Airport::try_unscribe("stn"), None);
 /// ```
 pub trait TryUnscribe: Sized {
+    /// Converts the given string to an enum variant, or `None` if the conversion was not
+    /// successful.
+    ///
+    /// The given string is matched against the `#[enumscribe(str = "...")]` attribute for each
+    /// variant to determine which variant to return. If there was no successful match, the
+    /// variant marked with `#[enumscribe(other)]` will be returned instead. If there is no
+    /// variant marked with `#[enumscribe(other)]`, then `None` will be returned.
     fn try_unscribe(to_unscribe: &str) -> Option<Self>;
 }
