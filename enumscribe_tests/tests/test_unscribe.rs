@@ -279,24 +279,42 @@ fn test_try_unscribe() {
     assert_eq!(E1::try_unscribe("loREM"), Some(E1::V7));
     assert_eq!(E1::try_unscribe("larem"), Some(E1::V12("larem".to_owned())));
     assert_eq!(E1::try_unscribe("lore"), Some(E1::V12("lore".to_owned())));
-    assert_eq!(E1::try_unscribe("llorem"), Some(E1::V12("llorem".to_owned())));
-    assert_eq!(E1::try_unscribe("loremm"), Some(E1::V12("loremm".to_owned())));
+    assert_eq!(
+        E1::try_unscribe("llorem"),
+        Some(E1::V12("llorem".to_owned()))
+    );
+    assert_eq!(
+        E1::try_unscribe("loremm"),
+        Some(E1::V12("loremm".to_owned()))
+    );
     assert_eq!(E1::try_unscribe("ipsum"), Some(E1::V9()));
     assert_eq!(E1::try_unscribe("IPSUM"), Some(E1::V9()));
     assert_eq!(E1::try_unscribe("IpSuM"), Some(E1::V9()));
     assert_eq!(E1::try_unscribe("ipSUM"), Some(E1::V9()));
     assert_eq!(E1::try_unscribe("ipdum"), Some(E1::V12("ipdum".to_owned())));
     assert_eq!(E1::try_unscribe("ipsu"), Some(E1::V12("ipsu".to_owned())));
-    assert_eq!(E1::try_unscribe("iipsum"), Some(E1::V12("iipsum".to_owned())));
-    assert_eq!(E1::try_unscribe("ipsumm"), Some(E1::V12("ipsumm".to_owned())));
+    assert_eq!(
+        E1::try_unscribe("iipsum"),
+        Some(E1::V12("iipsum".to_owned()))
+    );
+    assert_eq!(
+        E1::try_unscribe("ipsumm"),
+        Some(E1::V12("ipsumm".to_owned()))
+    );
     assert_eq!(E1::try_unscribe("dolor"), Some(E1::V11 {}));
     assert_eq!(E1::try_unscribe("DOLOR"), Some(E1::V11 {}));
     assert_eq!(E1::try_unscribe("DoLoR"), Some(E1::V11 {}));
     assert_eq!(E1::try_unscribe("doLOR"), Some(E1::V11 {}));
     assert_eq!(E1::try_unscribe("doler"), Some(E1::V12("doler".to_owned())));
     assert_eq!(E1::try_unscribe("dolo"), Some(E1::V12("dolo".to_owned())));
-    assert_eq!(E1::try_unscribe("ddolor"), Some(E1::V12("ddolor".to_owned())));
-    assert_eq!(E1::try_unscribe("dolorr"), Some(E1::V12("dolorr".to_owned())));
+    assert_eq!(
+        E1::try_unscribe("ddolor"),
+        Some(E1::V12("ddolor".to_owned()))
+    );
+    assert_eq!(
+        E1::try_unscribe("dolorr"),
+        Some(E1::V12("dolorr".to_owned()))
+    );
     assert_eq!(E1::try_unscribe(""), Some(E1::V12("".to_owned())));
     assert_eq!(E1::try_unscribe("\0"), Some(E1::V12("\0".to_owned())));
 }

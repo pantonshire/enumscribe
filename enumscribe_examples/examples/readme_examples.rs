@@ -45,7 +45,7 @@ fn case_insensitivity_example() {
 fn other_example() {
     use std::borrow::Cow;
 
-    use enumscribe::{Unscribe, ScribeCowStr};
+    use enumscribe::{ScribeCowStr, Unscribe};
 
     #[derive(ScribeCowStr, Unscribe, PartialEq, Eq, Debug)]
     enum Website {
@@ -61,12 +61,21 @@ fn other_example() {
     assert_eq!(Website::unscribe("github.com"), Website::Github);
 
     // Unbelievably, there exist websites other than github and crates.io
-    assert_eq!(Website::unscribe("stackoverflow.com"), Website::Other("stackoverflow.com".to_owned()));
+    assert_eq!(
+        Website::unscribe("stackoverflow.com"),
+        Website::Other("stackoverflow.com".to_owned())
+    );
 
     // We can't scribe to a &'static str anymore, so we use a Cow<'static, str> instead
-    assert_eq!(Website::Github.scribe(), Cow::Borrowed::<'static, str>("github.com"));
+    assert_eq!(
+        Website::Github.scribe(),
+        Cow::Borrowed::<'static, str>("github.com")
+    );
 
-    assert_eq!(Website::Other("owasp.org".to_owned()).scribe(), Cow::Owned::<'static, str>("owasp.org".to_owned()));
+    assert_eq!(
+        Website::Other("owasp.org".to_owned()).scribe(),
+        Cow::Owned::<'static, str>("owasp.org".to_owned())
+    );
 }
 
 fn ignore_example() {
@@ -90,9 +99,9 @@ fn ignore_example() {
 }
 
 fn serde_example() {
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
 
-    use enumscribe::{EnumSerialize, EnumDeserialize};
+    use enumscribe::{EnumDeserialize, EnumSerialize};
 
     #[derive(EnumSerialize, EnumDeserialize, PartialEq, Eq, Clone, Copy, Debug)]
     enum Airport {
@@ -118,7 +127,10 @@ fn serde_example() {
 
     let flight_json = r#"{"takeoff":"LHR","landing":"LGW"}"#;
 
-    assert_eq!(serde_json::to_string(&flight).unwrap(), flight_json.to_owned());
+    assert_eq!(
+        serde_json::to_string(&flight).unwrap(),
+        flight_json.to_owned()
+    );
 
     assert_eq!(serde_json::from_str::<Flight>(flight_json).unwrap(), flight);
 }

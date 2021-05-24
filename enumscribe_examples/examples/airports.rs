@@ -39,12 +39,16 @@ fn main() {
 
     let info = AirportInfo {
         airport: Airport::Gatwick(),
-        info: "It's somewhere in London, innit".to_owned()
+        info: "It's somewhere in London, innit".to_owned(),
     };
     println!("{}", serde_json::to_string(&info).unwrap());
 
     println!();
 
-    let info_str = r#"{ "airport": "lgw", "info": "Fun Gatwick fact: I'm fresh out of Gatwick facts" }"#;
-    println!("{:?}", serde_json::from_str::<AirportInfo>(info_str).unwrap());
+    let info_str =
+        r#"{ "airport": "lgw", "info": "Fun Gatwick fact: I'm fresh out of Gatwick facts" }"#;
+    println!(
+        "{:?}",
+        serde_json::from_str::<AirportInfo>(info_str).unwrap()
+    );
 }

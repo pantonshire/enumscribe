@@ -1,17 +1,12 @@
 use std::borrow::Cow;
 
 use enumscribe::{
-    ScribeCowStr,
-    ScribeStaticStr,
-    ScribeString,
-    TryScribeCowStr,
-    TryScribeStaticStr,
+    ScribeCowStr, ScribeStaticStr, ScribeString, TryScribeCowStr, TryScribeStaticStr,
     TryScribeString,
 };
 
-const TEST_STRINGS: [&'static str; 6] = [
-    "", "\0", "foo", "baa", "Hello, world!", "こんにちは、世界"
-];
+const TEST_STRINGS: [&'static str; 6] =
+    ["", "\0", "foo", "baa", "Hello, world!", "こんにちは、世界"];
 
 #[test]
 fn test_scribe_static_str() {
@@ -54,7 +49,10 @@ fn test_try_scribe_static_str() {
         #[enumscribe(ignore)]
         V7(i32, i32),
         #[enumscribe(ignore)]
-        V8 { s: &'static str, x: i32 },
+        V8 {
+            s: &'static str,
+            x: i32,
+        },
     }
 
     assert_eq!(E0::V0.try_scribe(), Some("V0"));
@@ -65,7 +63,14 @@ fn test_try_scribe_static_str() {
     assert_eq!(E0::V5 {}.try_scribe(), Some("baz"));
     assert_eq!(E0::V6.try_scribe(), None);
     assert_eq!(E0::V7(123, 456).try_scribe(), None);
-    assert_eq!(E0::V8 { s: "lorem ipsum", x: 246 }.try_scribe(), None);
+    assert_eq!(
+        E0::V8 {
+            s: "lorem ipsum",
+            x: 246
+        }
+        .try_scribe(),
+        None
+    );
 }
 
 #[test]
@@ -135,7 +140,10 @@ fn test_try_scribe_string() {
         #[enumscribe(ignore)]
         V7(i32, i32),
         #[enumscribe(ignore)]
-        V8 { s: &'static str, x: i32 },
+        V8 {
+            s: &'static str,
+            x: i32,
+        },
     }
 
     assert_eq!(E0::V0.try_scribe(), Some("V0".to_owned()));
@@ -146,7 +154,14 @@ fn test_try_scribe_string() {
     assert_eq!(E0::V5 {}.try_scribe(), Some("baz".to_owned()));
     assert_eq!(E0::V6.try_scribe(), None);
     assert_eq!(E0::V7(123, 456).try_scribe(), None);
-    assert_eq!(E0::V8 { s: "lorem ipsum", x: 246 }.try_scribe(), None);
+    assert_eq!(
+        E0::V8 {
+            s: "lorem ipsum",
+            x: 246
+        }
+        .try_scribe(),
+        None
+    );
 
     #[derive(TryScribeString, Eq, PartialEq, Debug)]
     enum E1 {
@@ -213,7 +228,10 @@ fn test_scribe_cow_str() {
 
     assert_eq!(E1::V0.scribe(), Cow::Borrowed("foo"));
     for &x in &TEST_STRINGS {
-        assert_eq!(E1::V1(x.to_owned()).scribe(), Cow::Owned::<'static, str>(x.to_owned()));
+        assert_eq!(
+            E1::V1(x.to_owned()).scribe(),
+            Cow::Owned::<'static, str>(x.to_owned())
+        );
     }
 
     #[derive(ScribeCowStr, Eq, PartialEq, Debug)]
@@ -226,7 +244,10 @@ fn test_scribe_cow_str() {
 
     assert_eq!(E2::V0.scribe(), "foo".to_owned());
     for &x in &TEST_STRINGS {
-        assert_eq!(E2::V1 { s: x.to_owned() }.scribe(), Cow::Owned::<'static, str>(x.to_owned()));
+        assert_eq!(
+            E2::V1 { s: x.to_owned() }.scribe(),
+            Cow::Owned::<'static, str>(x.to_owned())
+        );
     }
 }
 
@@ -248,7 +269,10 @@ fn test_try_scribe_cow_str() {
         #[enumscribe(ignore)]
         V7(i32, i32),
         #[enumscribe(ignore)]
-        V8 { s: &'static str, x: i32 },
+        V8 {
+            s: &'static str,
+            x: i32,
+        },
     }
 
     assert_eq!(E0::V0.try_scribe(), Some(Cow::Borrowed("V0")));
@@ -259,7 +283,14 @@ fn test_try_scribe_cow_str() {
     assert_eq!(E0::V5 {}.try_scribe(), Some(Cow::Borrowed("baz")));
     assert_eq!(E0::V6.try_scribe(), None);
     assert_eq!(E0::V7(123, 456).try_scribe(), None);
-    assert_eq!(E0::V8 { s: "lorem ipsum", x: 246 }.try_scribe(), None);
+    assert_eq!(
+        E0::V8 {
+            s: "lorem ipsum",
+            x: 246
+        }
+        .try_scribe(),
+        None
+    );
 
     #[derive(TryScribeCowStr, Eq, PartialEq, Debug)]
     enum E1 {
@@ -273,7 +304,10 @@ fn test_try_scribe_cow_str() {
 
     assert_eq!(E1::V0.try_scribe(), Some(Cow::Borrowed("foo")));
     for &x in &TEST_STRINGS {
-        assert_eq!(E1::V1(x.to_owned()).try_scribe(), Some(Cow::Owned::<'static, str>(x.to_owned())));
+        assert_eq!(
+            E1::V1(x.to_owned()).try_scribe(),
+            Some(Cow::Owned::<'static, str>(x.to_owned()))
+        );
     }
     assert_eq!(E1::V2.try_scribe(), None);
 
@@ -289,7 +323,10 @@ fn test_try_scribe_cow_str() {
 
     assert_eq!(E2::V0.try_scribe(), Some(Cow::Borrowed("foo")));
     for &x in &TEST_STRINGS {
-        assert_eq!(E2::V1 { s: x.to_owned() }.try_scribe(), Some(Cow::Owned::<'static, str>(x.to_owned())));
+        assert_eq!(
+            E2::V1 { s: x.to_owned() }.try_scribe(),
+            Some(Cow::Owned::<'static, str>(x.to_owned()))
+        );
     }
     assert_eq!(E2::V2.try_scribe(), None);
 }

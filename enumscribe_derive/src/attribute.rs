@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::fmt;
 
 use proc_macro2::Span;
-use syn::{Attribute, Ident, Lit, Token};
-use syn::parse::{Parse, ParseBuffer, ParseStream};
 use syn::parse::discouraged::Speculative;
+use syn::parse::{Parse, ParseBuffer, ParseStream};
+use syn::{Attribute, Ident, Lit, Token};
 
 use crate::error::{MacroError, MacroResult, ValueTypeError, ValueTypeResult};
 
@@ -40,8 +40,8 @@ impl Value {
             Value::None => Ok(true),
             Value::Lit(Lit::Bool(lit_bool)) => Ok(lit_bool.value),
             val => Err(ValueTypeError {
-                message: format!("expected boolean but found {}", val.type_name()).into()
-            })
+                message: format!("expected boolean but found {}", val.type_name()).into(),
+            }),
         }
     }
 
@@ -51,8 +51,8 @@ impl Value {
         match self {
             Value::Lit(Lit::Str(lit_str)) => Ok(lit_str.value()),
             val => Err(ValueTypeError {
-                message: format!("expected string but found {}", val.type_name()).into()
-            })
+                message: format!("expected string but found {}", val.type_name()).into(),
+            }),
         }
     }
 }
@@ -97,13 +97,16 @@ struct KeyValPair {
 
 impl Dict {
     pub(crate) fn new() -> Self {
-        Dict { inner: HashMap::new() }
+        Dict {
+            inner: HashMap::new(),
+        }
     }
 
     pub(crate) fn from_attrs(name: &str, attrs: &[Attribute]) -> MacroResult<Self> {
         let mut dict = Dict::new();
 
-        let attribute_tags = attrs.iter()
+        let attribute_tags = attrs
+            .iter()
             .filter(|attr| attr.path.is_ident(name))
             .map(|attr| attr.parse_args::<AttributeTag>());
 
@@ -112,9 +115,10 @@ impl Dict {
 
             for (key, val, span) in tag.inner {
                 if dict.inner.contains_key(&key) {
-                    return Err(MacroError::new(format!(
-                        "key appears more than once: {}", key
-                    ), span));
+                    return Err(MacroError::new(
+                        format!("key appears more than once: {}", key),
+                        span,
+                    ));
                 }
 
                 dict.inner.insert(key, (val, span));
@@ -124,9 +128,13 @@ impl Dict {
         Ok(dict)
     }
 
-    pub(crate) fn remove_typed<T, F>(&mut self, key: &str, converter: F) -> MacroResult<Option<(T, Span)>>
-        where
-            F: Fn(&Value) -> ValueTypeResult<T>
+    pub(crate) fn remove_typed<T, F>(
+        &mut self,
+        key: &str,
+        converter: F,
+    ) -> MacroResult<Option<(T, Span)>>
+    where
+        F: Fn(&Value) -> ValueTypeResult<T>,
     {
         match self.inner.remove(key) {
             None => Ok(None),
@@ -135,14 +143,19 @@ impl Dict {
                 Err(ValueTypeError { message }) => Err(MacroError::new(
                     format!("{} for key: {}", message, key),
                     span,
-                ))
-            }
+                )),
+            },
         }
     }
 
-    pub(crate) fn remove_typed_or_default<T, F>(&mut self, key: &str, default: (T, Span), converter: F) -> MacroResult<(T, Span)>
-        where
-            F: Fn(&Value) -> ValueTypeResult<T>
+    pub(crate) fn remove_typed_or_default<T, F>(
+        &mut self,
+        key: &str,
+        default: (T, Span),
+        converter: F,
+    ) -> MacroResult<(T, Span)>
+    where
+        F: Fn(&Value) -> ValueTypeResult<T>,
     {
         match self.remove_typed(key, converter) {
             Ok(Some(value)) => Ok(value),
@@ -171,15 +184,14 @@ impl Parse for AttributeTag {
                 .parse_terminated::<KeyValPair, Token![,]>(KeyValPair::parse)?
                 .into_iter()
                 .map(|pair| (pair.key, pair.val, pair.span))
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>(),
         })
     }
 }
 
 impl Parse for KeyValPair {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let key = input
-            .parse::<Ident>()?;
+        let key = input.parse::<Ident>()?;
 
         let val = if input.peek(Token![=]) {
             input.parse::<Token![=]>()?;
@@ -190,7 +202,8 @@ impl Parse for KeyValPair {
                 Value::Ident(ident)
             } else {
                 return Err(input.error(format!(
-                    "could not parse value corresponding to key: {}", key
+                    "could not parse value corresponding to key: {}",
+                    key
                 )));
             }
         } else {
@@ -205,17 +218,23 @@ impl Parse for KeyValPair {
     }
 }
 
-fn speculative_parse<T>(input: ParseStream) -> syn::Result<T> where T: Parse {
+fn speculative_parse<T>(input: ParseStream) -> syn::Result<T>
+where
+    T: Parse,
+{
     match fork_and_parse(input) {
         Ok((fork, parsed)) => {
             input.advance_to(&fork);
             Ok(parsed)
         }
-        Err(err) => Err(err)
+        Err(err) => Err(err),
     }
 }
 
-fn fork_and_parse<T>(input: ParseStream) -> syn::Result<(ParseBuffer, T)> where T: Parse {
+fn fork_and_parse<T>(input: ParseStream) -> syn::Result<(ParseBuffer, T)>
+where
+    T: Parse,
+{
     let fork = input.fork();
     T::parse(&fork).map(move |parsed| (fork, parsed))
 }

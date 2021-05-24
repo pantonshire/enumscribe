@@ -19,7 +19,10 @@ pub(crate) struct MacroError {
 pub(crate) type MacroResult<T> = result::Result<T, MacroError>;
 
 impl MacroError {
-    pub(crate) fn new<T>(message: T, span: Span) -> Self where T: Into<Cow<'static, str>> {
+    pub(crate) fn new<T>(message: T, span: Span) -> Self
+    where
+        T: Into<Cow<'static, str>>,
+    {
         MacroError {
             message: message.into(),
             span,
