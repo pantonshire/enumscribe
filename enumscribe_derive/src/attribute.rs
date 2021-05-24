@@ -165,14 +165,14 @@ impl Dict {
     }
 
     pub(crate) fn assert_empty(&self) -> MacroResult<()> {
-        if self.inner.is_empty() {
-            Ok(())
-        } else {
-            let (unexpected_key, (_, unexpected_span)) = self.inner.iter().next().unwrap();
-            Err(MacroError::new(
-                format!("unexpected key: {}", unexpected_key),
-                *unexpected_span,
-            ))
+        match self.inner.iter().next() {
+            Some((unexpected_key, (_, unexpected_span))) => {
+                Err(MacroError::new(
+                    format!("unexpected key: {}", unexpected_key),
+                    *unexpected_span,
+                ))
+            },
+            None => Ok(()),
         }
     }
 }

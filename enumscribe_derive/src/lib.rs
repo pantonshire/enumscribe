@@ -749,8 +749,7 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
             VariantType::Named { name, .. } => Some(name.as_str()),
             _ => None,
         })
-        .filter(|name| name.is_some())
-        .map(|name| name.unwrap())
+        .filter_map(|name| name)
         .collect::<Vec<_>>();
 
     let main_match = proc_try!(gen_unscribe_match(
