@@ -69,6 +69,7 @@ where
     }
 
     (quote! {
+        #[automatically_derived]
         impl #trait_ident for #enum_ident {
             fn scribe(&self) -> #trait_return_type {
                 match self {
@@ -117,6 +118,7 @@ where
     };
 
     (quote! {
+        #[automatically_derived]
         impl #trait_ident for #enum_ident {
             fn try_scribe(&self) -> #trait_return_type {
                 match self {
@@ -162,6 +164,7 @@ where
     ));
 
     (quote! {
+        #[automatically_derived]
         impl #trait_ident for #enum_ident {
             fn #trait_fn_name(#to_unscribe_ident: &str) -> #trait_return_type {
                 #main_match
@@ -698,6 +701,7 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
     };
 
     (quote! {
+        #[automatically_derived]
         impl ::serde::Serialize for #enum_ident {
             fn serialize<S>(&self, #serializer_ident: S) -> ::std::result::Result<S::Ok, S::Error>
                 where S: ::serde::Serializer
@@ -773,6 +777,7 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     ));
 
     (quote! {
+        #[automatically_derived]
         impl<'de> ::serde::Deserialize<'de> for #enum_ident {
             fn deserialize<D>(#deserializer_ident: D) -> ::std::result::Result<Self, D::Error>
                 where D: ::serde::Deserializer<'de>
