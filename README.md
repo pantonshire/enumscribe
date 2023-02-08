@@ -66,6 +66,24 @@ enum Website {
 assert_eq!(Website::try_unscribe("GiThUb.CoM"), Some(Website::Github));
 ```
 
+The same attribute can be used on the enum itself to make all variants case-insensitive. Individual fields may opt back
+in to case sensitivity with `#[enumscribe(case_sensitive)]`.
+
+```rust
+use enumscribe::TryUnscribe;
+
+#[derive(TryUnscribe, PartialEq, Eq, Debug)]
+#[case_insensitive]
+enum Website {
+    #[enumscribe(str = "github.com")]
+    Github,
+    #[enumscribe(str = "crates.io")]
+    CratesDotIo,
+}
+
+assert_eq!(Website::try_unscribe("CrAtEs.Io"), Some(Website::CratesDotIo));
+```
+
 ### "other" variant
 You can also have a variant which stores strings that could not be matched to any other variant. This is done using the
 `#[enumscribe(other)]` attribute. The variant should have a single field, which is a `String`.
