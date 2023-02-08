@@ -11,7 +11,7 @@ Add to your Cargo.toml file:
 
 ```toml
 [dependencies]
-enumscribe = "0.1"
+enumscribe = "0.2"
 ```
 
 Derive macros and [`serde`](https://crates.io/crates/serde) support are enabled by default. They can be disabled by
@@ -64,6 +64,24 @@ enum Website {
 }
 
 assert_eq!(Website::try_unscribe("GiThUb.CoM"), Some(Website::Github));
+```
+
+The same attribute can be used on the enum itself to make all variants case-insensitive. Individual fields may opt back
+in to case sensitivity with `#[enumscribe(case_sensitive)]`.
+
+```rust
+use enumscribe::TryUnscribe;
+
+#[derive(TryUnscribe, PartialEq, Eq, Debug)]
+#[case_insensitive]
+enum Website {
+    #[enumscribe(str = "github.com")]
+    Github,
+    #[enumscribe(str = "crates.io")]
+    CratesDotIo,
+}
+
+assert_eq!(Website::try_unscribe("CrAtEs.Io"), Some(Website::CratesDotIo));
 ```
 
 ### "other" variant

@@ -11,7 +11,7 @@ Add to your Cargo.toml file:
 
 ```toml
 [dependencies]
-enumscribe = "0.1"
+enumscribe = "0.2"
 ```
 
 Derive macros and [`serde`](https://crates.io/crates/serde) support are enabled by default. They can be disabled by
