@@ -73,7 +73,7 @@ in to case sensitivity with `#[enumscribe(case_sensitive)]`.
 use enumscribe::TryUnscribe;
 
 #[derive(TryUnscribe, PartialEq, Eq, Debug)]
-#[case_insensitive]
+#[enumscribe(case_insensitive)]
 enum Website {
     #[enumscribe(str = "github.com")]
     Github,
