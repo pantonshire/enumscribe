@@ -10,7 +10,7 @@ use proc_macro::TokenStream;
 
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{Data, DataEnum, DeriveInput};
+use syn::{Data, DataEnum, DeriveInput, Attribute};
 
 use error::{MacroError, MacroResult};
 
@@ -26,6 +26,7 @@ const NAME: &'static str = "str";
 const OTHER: &'static str = "other";
 const IGNORE: &'static str = "ignore";
 const CASE_INSENSITIVE: &'static str = "case_insensitive";
+const CASE_SENSITIVE: &'static str = "case_sensitive";
 
 type TokenStream2 = proc_macro2::TokenStream;
 
@@ -53,8 +54,8 @@ where
 {
     let input: DeriveInput = syn::parse(input).expect("failed to parse input");
 
-    let enum_data = proc_try!(get_enum_data(&input));
-    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    let (enum_data, enum_attrs) = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data, enum_attrs));
 
     let enum_ident = &input.ident;
 
@@ -95,8 +96,8 @@ where
 {
     let input: DeriveInput = syn::parse(input).expect("failed to parse input");
 
-    let enum_data = proc_try!(get_enum_data(&input));
-    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    let (enum_data, enum_attrs) = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data, enum_attrs));
 
     let enum_ident = &input.ident;
 
@@ -147,8 +148,8 @@ where
 {
     let input: DeriveInput = syn::parse(input).expect("failed to parse input");
 
-    let enum_data = proc_try!(get_enum_data(&input));
-    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    let (enum_data, enum_attrs) = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data, enum_attrs));
 
     let enum_ident = &input.ident;
 
@@ -645,8 +646,8 @@ pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
 pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse(input).expect("failed to parse input");
 
-    let enum_data = proc_try!(get_enum_data(&input));
-    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    let (enum_data, enum_attrs) = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data, enum_attrs));
 
     let enum_ident = &input.ident;
     let serializer_ident = quote! { __enumscribe_serializer };
@@ -737,8 +738,8 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
 pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse(input).expect("failed to parse input");
 
-    let enum_data = proc_try!(get_enum_data(&input));
-    let parsed_enum = proc_try!(enums::parse_enum(enum_data));
+    let (enum_data, enum_attrs) = proc_try!(get_enum_data(&input));
+    let parsed_enum = proc_try!(enums::parse_enum(enum_data, enum_attrs));
 
     let enum_ident = &input.ident;
 
@@ -792,7 +793,7 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     .into()
 }
 
-fn get_enum_data(input: &DeriveInput) -> MacroResult<&DataEnum> {
+fn get_enum_data(input: &DeriveInput) -> MacroResult<(&DataEnum, &[Attribute])> {
     let enum_data = match &input.data {
         Data::Enum(enum_data) => enum_data,
         Data::Struct(_) => {
@@ -816,5 +817,5 @@ fn get_enum_data(input: &DeriveInput) -> MacroResult<&DataEnum> {
         ));
     }
 
-    Ok(enum_data)
+    Ok((enum_data, &input.attrs))
 }

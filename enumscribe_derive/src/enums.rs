@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
-use syn::{DataEnum, Fields};
+use syn::{DataEnum, Fields, Attribute};
 
 use crate::attribute::{Dict, Value};
 use crate::error::{MacroError, MacroResult};
-use crate::TokenStream2;
+use crate::{TokenStream2, CASE_SENSITIVE};
 use crate::{CASE_INSENSITIVE, CRATE_ATTR, IGNORE, NAME, OTHER};
 
 #[derive(Clone)]
@@ -94,12 +94,26 @@ impl VariantConstructor {
     }
 }
 
-pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
+pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> MacroResult<Enum<'a>> {
     let mut variants = Vec::with_capacity(data.variants.len());
     let mut taken_names = HashSet::new();
     let mut taken_insensitive_names = HashSet::new();
     let mut taken_sensitive_names = HashSet::new();
     let mut other_variant = false;
+
+    let global_case_insensitive = {
+        let mut dict = Dict::from_attrs(CRATE_ATTR, attrs)?;
+
+        let (global_case_insensitive, _) = dict.remove_typed_or_default(
+            CASE_INSENSITIVE,
+            (false, data.enum_token.span()),
+            Value::value_bool,
+        )?;
+
+        dict.assert_empty()?;
+
+        global_case_insensitive
+    };
 
     for variant in data.variants.iter() {
         let variant_span = variant.span();
@@ -108,16 +122,49 @@ pub(crate) fn parse_enum(data: &DataEnum) -> MacroResult<Enum> {
         let mut dict = Dict::from_attrs(CRATE_ATTR, &variant.attrs)?;
 
         // Convert the values in the Dict to the appropriate types
-        let name_opt = dict.remove_typed(NAME, Value::value_string)?;
-        let (other, other_span) =
-            dict.remove_typed_or_default(OTHER, (false, variant_span), Value::value_bool)?;
-        let (ignore, _) =
-            dict.remove_typed_or_default(IGNORE, (false, variant_span), Value::value_bool)?;
+        let name_opt = dict.remove_typed(
+            NAME,
+            Value::value_string
+        )?;
+        
+        let (other, other_span) = dict.remove_typed_or_default(
+            OTHER,
+            (false, variant_span),
+            Value::value_bool
+        )?;
+        
+        let (ignore, _) = dict.remove_typed_or_default(
+            IGNORE,
+            (false, variant_span),
+            Value::value_bool
+        )?;
+        
         let (case_insensitive, _) = dict.remove_typed_or_default(
             CASE_INSENSITIVE,
             (false, variant_span),
             Value::value_bool,
         )?;
+
+        let (case_sensitive, case_sensitive_span) = dict.remove_typed_or_default(
+            CASE_SENSITIVE,
+            (false, variant_span),
+            Value::value_bool
+        )?;
+
+        let case_insensitive = match (case_insensitive, case_sensitive) {
+            (false, false) => global_case_insensitive,
+            (false, true) => false,
+            (true, false) => true,
+            (true, true) => {
+                return Err(MacroError::new(
+                    format!(
+                        "variant {} cannot be both case_insensitive and case_sensitive",
+                        variant.ident,
+                    ),
+                    case_sensitive_span,
+                ))
+            }
+        };
 
         // Return an error if there are any unrecognised keys in the Dict
         dict.assert_empty()?;

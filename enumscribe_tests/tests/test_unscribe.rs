@@ -8,7 +8,7 @@ fn test_unscribe() {
         #[enumscribe(str = "foo")]
         V1,
         V2(),
-        #[enumscribe(str = "BAA")]
+        #[enumscribe(str = "BAA", case_sensitive)]
         V3(),
         V4 {},
         #[enumscribe(str = "BaZ")]
@@ -100,6 +100,24 @@ fn test_unscribe() {
     assert_eq!(E0::unscribe("dolorr"), E0::V12("dolorr".to_owned()));
     assert_eq!(E0::unscribe(""), E0::V12("".to_owned()));
     assert_eq!(E0::unscribe("\0"), E0::V12("\0".to_owned()));
+
+    #[derive(Unscribe, Eq, PartialEq, Debug)]
+    #[enumscribe(case_insensitive)]
+    enum E1 {
+        #[enumscribe(str = "foo")]
+        V0,
+        #[enumscribe(str = "baa", case_sensitive)]
+        V1,
+        #[enumscribe(other)]
+        V2(String),
+    }
+
+    assert_eq!(E1::unscribe("foo"), E1::V0);
+    assert_eq!(E1::unscribe("Foo"), E1::V0);
+    assert_eq!(E1::unscribe("FOO"), E1::V0);
+    assert_eq!(E1::unscribe("baa"), E1::V1);
+    assert_eq!(E1::unscribe("Baa"), E1::V2("Baa".to_owned()));
+    assert_eq!(E1::unscribe("BAA"), E1::V2("BAA".to_owned()));
 }
 
 #[test]
@@ -110,7 +128,7 @@ fn test_try_unscribe() {
         #[enumscribe(str = "foo")]
         V1,
         V2(),
-        #[enumscribe(str = "BAA")]
+        #[enumscribe(str = "BAA", case_sensitive)]
         V3(),
         V4 {},
         #[enumscribe(str = "BaZ")]
@@ -317,4 +335,20 @@ fn test_try_unscribe() {
     );
     assert_eq!(E1::try_unscribe(""), Some(E1::V12("".to_owned())));
     assert_eq!(E1::try_unscribe("\0"), Some(E1::V12("\0".to_owned())));
+
+    #[derive(TryUnscribe, Eq, PartialEq, Debug)]
+    #[enumscribe(case_insensitive)]
+    enum E2 {
+        #[enumscribe(str = "foo")]
+        V0,
+        #[enumscribe(str = "baa", case_sensitive)]
+        V1,
+    }
+
+    assert_eq!(E2::try_unscribe("foo"), Some(E2::V0));
+    assert_eq!(E2::try_unscribe("Foo"), Some(E2::V0));
+    assert_eq!(E2::try_unscribe("FOO"), Some(E2::V0));
+    assert_eq!(E2::try_unscribe("baa"), Some(E2::V1));
+    assert_eq!(E2::try_unscribe("Baa"), None);
+    assert_eq!(E2::try_unscribe("BAA"), None);
 }
