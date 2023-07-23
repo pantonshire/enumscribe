@@ -17,5 +17,6 @@ syn = "1.0"
 quote = "1.0"
 
 [features]
-default = ["serde"]
+default = ["std", "serde"]
+std = []
 serde = []

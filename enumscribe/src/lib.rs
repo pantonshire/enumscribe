@@ -42,13 +42,13 @@
 //!
 //! assert_eq!(Website::try_unscribe("GiThUb.CoM"), Some(Website::Github));
 //! ```
-//! 
+//!
 //! The same attribute can be used on the enum itself to make all variants case-insensitive. Individual fields may opt back
 //! in to case sensitivity with `#[enumscribe(case_sensitive)]`.
 
 //! ```rust
 //! use enumscribe::TryUnscribe;
-//! 
+//!
 //! #[derive(TryUnscribe, PartialEq, Eq, Debug)]
 //! #[enumscribe(case_insensitive)]
 //! enum Website {
@@ -181,12 +181,14 @@
 //! you *really* don't want to use a `Cow` for whatever reason.
 
 #![deny(missing_docs)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[macro_use]
 extern crate enumscribe_derive;
 
 pub use enumscribe_derive::*;
 
+#[cfg(feature = "std")]
 use std::borrow::Cow;
 
 /// Trait for converting an enum to a static string slice.
@@ -295,6 +297,7 @@ pub trait TryScribeStaticStr {
 /// assert_eq!(Airport::Gatwick.scribe(), "LGW".to_owned());
 /// assert_eq!(Airport::Other("STN".to_owned()).scribe(), "STN".to_owned());
 /// ```
+#[cfg(feature = "std")]
 pub trait ScribeString {
     /// Converts this enum to an allocated `String`.
     ///
@@ -330,6 +333,7 @@ pub trait ScribeString {
 /// assert_eq!(Airport::Gatwick.try_scribe(), Some("LGW".to_owned()));
 /// assert_eq!(Airport::Other("STN".to_owned()).try_scribe(), Some("STN".to_owned()));
 /// ```
+#[cfg(feature = "std")]
 pub trait TryScribeString {
     /// Converts this enum to an allocated `String`.
     ///
@@ -381,6 +385,7 @@ pub trait TryScribeString {
 /// assert_eq!(Airport::Other("STN".to_owned()).scribe(),
 ///            Cow::Owned::<'static, str>("STN".to_owned()));
 /// ```
+#[cfg(feature = "std")]
 pub trait ScribeCowStr {
     /// Converts this enum to a `Cow<'static, str>`.
     ///
@@ -430,6 +435,7 @@ pub trait ScribeCowStr {
 /// assert_eq!(Airport::Other("STN".to_owned()).try_scribe(),
 ///            Some(Cow::Owned::<'static, str>("STN".to_owned())));
 /// ```
+#[cfg(feature = "std")]
 pub trait TryScribeCowStr {
     /// Converts this enum to a `Option<Cow<'static, str>>`.
     ///
