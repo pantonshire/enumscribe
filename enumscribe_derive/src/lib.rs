@@ -10,7 +10,7 @@ use proc_macro::TokenStream;
 
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{Data, DataEnum, DeriveInput, Attribute};
+use syn::{Attribute, Data, DataEnum, DeriveInput};
 
 use error::{MacroError, MacroResult};
 
@@ -364,10 +364,10 @@ pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
         input,
         quote! { ::enumscribe::TryScribeStaticStr },
-        quote! { ::std::option::Option<&'static str> },
+        quote! { ::core::option::Option<&'static str> },
         |_, _, name| {
             Ok(quote! {
-                ::std::option::Option::Some(#name)
+                ::core::option::Option::Some(#name)
             })
         },
         |variant, enum_ident, _| {
@@ -381,7 +381,7 @@ pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
                 variant.span,
             ))
         },
-        quote! { ::std::option::Option::None },
+        quote! { ::core::option::Option::None },
     )
 }
 
@@ -394,6 +394,7 @@ pub fn derive_try_scribe_static_str(input: TokenStream) -> TokenStream {
 /// Since a `String` is returned, an allocation must always be performed, which is wasteful.
 /// [`ScribeCowStr`](derive.ScribeCowStr.html) should be preferred because it avoids unnecessary
 /// allocations.
+#[cfg(feature = "std")]
 #[proc_macro_derive(ScribeString, attributes(enumscribe))]
 pub fn derive_scribe_string(input: TokenStream) -> TokenStream {
     gen_scribe_impl(
@@ -434,6 +435,7 @@ pub fn derive_scribe_string(input: TokenStream) -> TokenStream {
 /// Since a `String` is returned, an allocation must always be performed, which is wasteful.
 /// [`TryScribeCowStr`](derive.TryScribeCowStr.html) should be preferred because it avoids
 /// unnecessary allocations.
+#[cfg(feature = "std")]
 #[proc_macro_derive(TryScribeString, attributes(enumscribe))]
 pub fn derive_try_scribe_string(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
@@ -477,6 +479,7 @@ pub fn derive_try_scribe_string(input: TokenStream) -> TokenStream {
 ///
 /// This derive does not support ignoring variants with `#[enumscribe(ignore)]`. If you want to
 /// ignore variants, try deriving [`TryScribeCowStr`](derive.TryScribeCowStr.html) instead.
+#[cfg(feature = "std")]
 #[proc_macro_derive(ScribeCowStr, attributes(enumscribe))]
 pub fn derive_scribe_cow_str(input: TokenStream) -> TokenStream {
     gen_scribe_impl(
@@ -530,6 +533,7 @@ pub fn derive_scribe_cow_str(input: TokenStream) -> TokenStream {
 ///
 /// If you do not want to use `#[enumscribe(other)]`, you should derive
 /// [`TryScribeStaticStr`](derive.TryScribeStaticStr.html) instead.
+#[cfg(feature = "std")]
 #[proc_macro_derive(TryScribeCowStr, attributes(enumscribe))]
 pub fn derive_try_scribe_cow_str(input: TokenStream) -> TokenStream {
     gen_try_scribe_impl(
@@ -625,10 +629,10 @@ pub fn derive_try_unscribe(input: TokenStream) -> TokenStream {
         input,
         quote! { ::enumscribe::TryUnscribe },
         quote! { try_unscribe },
-        quote! { ::std::option::Option<Self> },
-        |constructed_named_variant| quote! { ::std::option::Option::Some(#constructed_named_variant) },
-        |constructed_other_variant| quote! { ::std::option::Option::Some(#constructed_other_variant) },
-        |_| Ok(quote! { _ => ::std::option::Option::None }),
+        quote! { ::core::option::Option<Self> },
+        |constructed_named_variant| quote! { ::core::option::Option::Some(#constructed_named_variant) },
+        |constructed_other_variant| quote! { ::core::option::Option::Some(#constructed_other_variant) },
+        |_| Ok(quote! { _ => ::core::option::Option::None }),
     )
 }
 
@@ -693,7 +697,7 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
             enum_ident
         );
         quote! {
-            _ => ::std::result::Result::Err(
+            _ => ::core::result::Result::Err(
                 ::serde::ser::Error::custom(#err_string)
             )
         }
@@ -704,7 +708,7 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
     (quote! {
         #[automatically_derived]
         impl ::serde::Serialize for #enum_ident {
-            fn serialize<S>(&self, #serializer_ident: S) -> ::std::result::Result<S::Ok, S::Error>
+            fn serialize<S>(&self, #serializer_ident: S) -> ::core::result::Result<S::Ok, S::Error>
                 where S: ::serde::Serializer
             {
                 match self {
@@ -744,7 +748,6 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     let enum_ident = &input.ident;
 
     let deserializer_ident = quote! { __enumscribe_deserializer };
-    let deserialized_string_ident = quote! { __enumscribe_deserialized_string };
     let deserialized_str_ident = quote! { __enumscribe_deserialized_str };
 
     let variant_strings = parsed_enum
@@ -762,13 +765,13 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
         &parsed_enum,
         &deserialized_str_ident,
         |constructed_named_variant| quote! {
-            ::std::result::Result::Ok(#constructed_named_variant)
+            ::core::result::Result::Ok(#constructed_named_variant)
         },
         |constructed_other_variant| quote! {
-            ::std::result::Result::Ok(#constructed_other_variant)
+            ::core::result::Result::Ok(#constructed_other_variant)
         },
         |_| Ok(quote! {
-            __enumscribe_deserialize_base_case => ::std::result::Result::Err(
+            __enumscribe_deserialize_base_case => ::core::result::Result::Err(
                 ::serde::de::Error::unknown_variant(
                     __enumscribe_deserialize_base_case,
                     &[#(#variant_strings),*]
@@ -780,12 +783,10 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     (quote! {
         #[automatically_derived]
         impl<'de> ::serde::Deserialize<'de> for #enum_ident {
-            fn deserialize<D>(#deserializer_ident: D) -> ::std::result::Result<Self, D::Error>
+            fn deserialize<D>(#deserializer_ident: D) -> ::core::result::Result<Self, D::Error>
                 where D: ::serde::Deserializer<'de>
             {
-                let #deserialized_string_ident = <::std::string::String as ::serde::Deserialize<'_>>
-                    ::deserialize(#deserializer_ident)?;
-                let #deserialized_str_ident = #deserialized_string_ident.as_str();
+                let #deserialized_str_ident = <&str as ::serde::Deserialize<'_>>::deserialize(#deserializer_ident)?;
                 #main_match
             }
         }
