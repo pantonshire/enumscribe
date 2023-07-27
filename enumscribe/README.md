@@ -1,6 +1,6 @@
 # enumscribe
 
-[![Build Status](https://travis-ci.com/Pantonshire/enumscribe.svg?branch=main)](https://travis-ci.com/Pantonshire/enumscribe)
+[![crates.io](https://img.shields.io/crates/v/enumscribe)](https://crates.io/crates/enumscribe)
 
 This crate provides derive macros for converting between simple enums and strings. It also includes derive macros for
 [`serde::Serialize`](https://docs.serde.rs/serde/trait.Serialize.html) and
@@ -11,7 +11,7 @@ Add to your Cargo.toml file:
 
 ```toml
 [dependencies]
-enumscribe = "0.2"
+enumscribe = "0.3"
 ```
 
 Derive macros and [`serde`](https://crates.io/crates/serde) support are enabled by default. They can be disabled by

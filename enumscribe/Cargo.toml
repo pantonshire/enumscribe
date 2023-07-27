@@ -1,17 +1,17 @@
 [package]
 name = "enumscribe"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Tom Panton <pantonshire@gmail.com>"]
 edition = "2018"
 license = "MIT"
-repository = "https://github.com/Pantonshire/enumscribe"
+repository = "https://github.com/pantonshire/enumscribe"
 readme = "README.md"
 description = "Derive macros for converting between enums and strings"
 categories = ["encoding"]
 keywords = ["enum", "derive", "serde"]
 
 [dependencies]
-enumscribe_derive = { version = "0.2.1", path = "../enumscribe_derive", default-features = false, optional = true }
+enumscribe_derive = { version = "0.3.0", path = "../enumscribe_derive", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }

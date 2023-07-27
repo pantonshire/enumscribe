@@ -1,10 +1,10 @@
 [package]
 name = "enumscribe_derive"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Tom Panton <pantonshire@gmail.com>"]
 edition = "2018"
 license = "MIT"
-repository = "https://github.com/Pantonshire/enumscribe"
+repository = "https://github.com/pantonshire/enumscribe"
 readme = "README.md"
 description = "Derive macros for converting between enums and strings"
 

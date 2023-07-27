@@ -11,7 +11,7 @@ Add to your Cargo.toml file:
 
 ```toml
 [dependencies]
-enumscribe = "0.2"
+enumscribe = "0.3"
 ```
 
 Derive macros and [`serde`](https://crates.io/crates/serde) support are enabled by default. They can be disabled by
@@ -190,7 +190,3 @@ Here is a table to show which traits you should derive, depending on your enum:
 There are also `ScribeString` and `TryScribeString` traits which can be used in the same situations as `ScribeCowStr` and `TryScribeCowStr`, respectively.
 These traits produce a `String` rather than a `Cow<'static, str>`, so they will always perform an allocation. Therefore, you should prefer the
 `ScribeCowStr` traits over the `ScribeString` traits, unless you *really* don't want to use a `Cow` for whatever reason.
-
-## Plans for the future
-- [ ] Converting to / from types other than strings
-- [ ] Unix-permissions-style encoding for collections of enum variants
