@@ -19,8 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 [features]
-# default = ["std", "derive", "derive_serde"]
-default = ["derive", "derive_serde"]
+default = ["std", "derive", "derive_serde"]
 std = ["enumscribe_derive/std"]
 derive = ["enumscribe_derive"]
 derive_serde = ["derive", "serde", "enumscribe_derive/serde"]
