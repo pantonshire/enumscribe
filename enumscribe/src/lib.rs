@@ -181,6 +181,7 @@
 //! you *really* don't want to use a `Cow` for whatever reason.
 
 #![deny(missing_docs)]
+#![deny(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod internal;
