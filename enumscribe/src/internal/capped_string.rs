@@ -3,6 +3,68 @@
 
 use core::{str, ops::Deref, borrow::Borrow, fmt};
 
+/// TODO: documentation
+pub enum CowCappedString<'a, const N: usize> {
+    /// TODO: documentation
+    Borrowed(&'a str),
+    /// TODO: documentation
+    Owned(CappedString<N>),
+}
+
+#[cfg(feature = "serde")]
+impl<'de, const N: usize> serde::Deserialize<'de> for CowCappedString<'de, N> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>
+    {
+        deserializer.deserialize_str(CowCappedStringVisitor::<N>)
+    }
+}
+
+#[cfg(feature = "serde")]
+struct CowCappedStringVisitor<const N: usize>;
+
+#[cfg(feature = "serde")]
+impl<'de, const N: usize> serde::de::Visitor<'de> for CowCappedStringVisitor<N> {
+    type Value = CowCappedString<'de, N>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "a borrowed string or a string up to {} bytes long", N)
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        CappedStringVisitor::<N>.visit_str(v)
+            .map(CowCappedString::Owned)
+    }
+
+    fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        CappedStringVisitor::<N>.visit_bytes(v)
+            .map(CowCappedString::Owned)
+    }
+
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(CowCappedString::Borrowed(v))
+    }
+
+    fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        str::from_utf8(v)
+            .map_err(|_| E::invalid_value(serde::de::Unexpected::Bytes(v), &self))
+            .and_then(|v| self.visit_borrowed_str(v))
+    }
+}
+
 /// A string type which stores up to `N` bytes of string data inline.
 pub struct CappedString<const N: usize> {
     /// The string data. It is an invariant that the first `len` bytes must be valid UTF-8.
@@ -134,8 +196,10 @@ impl<'de, const N: usize> serde::Deserialize<'de> for CappedString<N> {
     }
 }
 
+#[cfg(feature = "serde")]
 struct CappedStringVisitor<const N: usize>;
 
+#[cfg(feature = "serde")]
 impl<'de, const N: usize> serde::de::Visitor<'de> for CappedStringVisitor<N> {
     type Value = CappedString<N>;
 
@@ -157,8 +221,7 @@ impl<'de, const N: usize> serde::de::Visitor<'de> for CappedStringVisitor<N> {
     {
         str::from_utf8(v)
             .map_err(|_| E::invalid_value(serde::de::Unexpected::Bytes(v), &self))
-            .and_then(|v| CappedString::from_str(v)
-                .ok_or_else(|| E::invalid_length(v.len(), &self)))
+            .and_then(|v| self.visit_str(v))
     }
 }
 
