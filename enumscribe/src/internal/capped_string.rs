@@ -3,7 +3,7 @@
 
 use core::{str, ops::Deref, borrow::Borrow, fmt};
 
-/// TODO: documentation
+/// A string type which stores up to `N` bytes of string data inline.
 pub struct CappedString<const N: usize> {
     /// The string data. It is an invariant that the first `len` bytes must be valid UTF-8.
     buf: [u8; N],
@@ -12,14 +12,16 @@ pub struct CappedString<const N: usize> {
 }
 
 impl<const N: usize> CappedString<N> {
-    /// TODO: documentation
+    /// Returns a new `CappedString` containing a copy of the given string data. Returns an error
+    /// if the string data is larger than `N` bytes.
     #[inline]
     #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         unsafe { Self::from_utf8_unchecked(s.as_bytes()) }
     }
 
-    /// TODO: documentation
+    /// Returns a new `CappedString` containing a copy of the given UTF-8 encoded string data.
+    /// Returns an error if more than `N` bytes of data are given.
     /// 
     /// # Safety
     /// - `bs` must be valid UTF-8.
@@ -36,7 +38,7 @@ impl<const N: usize> CappedString<N> {
         unsafe { Some(Self::from_raw_parts(buf, bs.len())) }
     }
 
-    /// TODO: documentation
+    /// Returns a new `CappedString` from a given buffer and length.
     /// 
     /// # Safety
     /// - `len <= N` must hold.
@@ -48,14 +50,14 @@ impl<const N: usize> CappedString<N> {
     }
 
 
-    /// TODO: documentation
+    /// Consumes the `CappedString` and returns its buffer and length.
     #[inline]
     #[must_use]
     pub fn into_raw_parts(self) -> ([u8; N], usize) {
         (self.buf, self.len)
     }
 
-    /// TODO: documentation
+    /// Returns the string data contained by this `CappedString`.
     #[inline]
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -69,7 +71,8 @@ impl<const N: usize> CappedString<N> {
         }
     }
 
-    /// TODO: documentation
+    /// Returns a new `CappedString` with capacity `M` containing the string converted to
+    /// uppercase. Returns an error if the uppercase-converted string is longer than `M` bytes.
     #[inline]
     #[must_use]
     pub fn to_uppercase<const M: usize>(&self) -> Option<CappedString<M>> {
