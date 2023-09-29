@@ -11,6 +11,18 @@ pub enum CowCappedString<'a, const N: usize> {
     Owned(CappedString<N>),
 }
 
+impl<'a, const N: usize> CowCappedString<'a, N> {
+    /// Returns the string data contained by this `CowCappedString`.
+    #[inline]
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            CowCappedString::Borrowed(s) => s,
+            CowCappedString::Owned(s) => s,
+        }
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de, const N: usize> serde::Deserialize<'de> for CowCappedString<'de, N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -186,6 +198,20 @@ impl<const N: usize> Borrow<str> for CappedString<N> {
     }
 }
 
+impl<const N: usize> PartialEq for CappedString<N> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl<const N: usize> Eq for CappedString<N> {}
+
+impl<const N: usize> PartialEq<str> for CappedString<N> {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de, const N: usize> serde::Deserialize<'de> for CappedString<N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -227,7 +253,115 @@ impl<'de, const N: usize> serde::de::Visitor<'de> for CappedStringVisitor<N> {
 
 #[cfg(test)]
 mod tests {
-    use super::CappedString;
+    use super::{CappedString, CowCappedString};
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_cow_capped_string_deserialize() {
+        struct DeBorrowedOnly<const N: usize>(String);
+
+        impl<'de, const N: usize> serde::Deserialize<'de> for DeBorrowedOnly<N> {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>
+            {
+                match CowCappedString::<'de, N>::deserialize(deserializer)? {
+                    CowCappedString::Borrowed(s) => Ok(Self(s.to_owned())),
+                    CowCappedString::Owned(_) => {
+                        Err(serde::de::Error::custom("expected borrowed CowCappedString"))
+                    },
+                }
+            }
+        }
+
+        struct DeOwnedOnly<const N: usize>(String);
+
+        impl<'de, const N: usize> serde::Deserialize<'de> for DeOwnedOnly<N> {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>
+            {
+                match CowCappedString::<'de, N>::deserialize(deserializer)? {
+                    CowCappedString::Borrowed(_) => {
+                        Err(serde::de::Error::custom("expected owned CowCappedString"))
+                    },
+                    CowCappedString::Owned(s) => Ok(Self(s.to_owned())),
+                }
+            }
+        }
+
+        {
+            let DeBorrowedOnly(s) = serde_json::from_str::<DeBorrowedOnly<5>>(
+                r#""hello""#
+            ).unwrap();
+            assert_eq!(s, "hello");
+        }
+        {
+            let DeBorrowedOnly(s) = serde_json::from_str::<DeBorrowedOnly<0>>(
+                r#""hello""#
+            ).unwrap();
+            assert_eq!(s, "hello");
+        }
+        {
+            let s = serde_json::from_str::<DeOwnedOnly<5>>(
+                r#""hello""#
+            );
+            assert!(s.is_err());
+        }
+        {
+            let DeOwnedOnly(s) = serde_json::from_str::<DeOwnedOnly<3>>(
+                r#""\u87f9""#
+            ).unwrap();
+            assert_eq!(s, "蟹");
+        }
+        {
+            let s = serde_json::from_str::<DeBorrowedOnly<3>>(
+                r#""\u87f9""#
+            );
+            assert!(s.is_err());
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_capped_string_deserialize() {
+        {
+            let s = serde_json::from_str::<CappedString<5>>(
+                r#""hello""#
+            ).unwrap();
+            assert_eq!(s.as_str(), "hello");
+        }
+        {
+            let s = serde_json::from_str::<CappedString<4>>(
+                r#""hello""#
+            );
+            assert!(s.is_err());
+        }
+        {
+            let s = serde_json::from_str::<CappedString<10>>(
+                r#""hello""#
+            ).unwrap();
+            assert_eq!(s.as_str(), "hello");
+        }
+        {
+            let s = serde_json::from_str::<CappedString<12>>(
+                r#""hello\tworld\n""#
+            ).unwrap();
+            assert_eq!(s.as_str(), "hello\tworld\n");
+        }
+        {
+            let s = serde_json::from_str::<CappedString<3>>(
+                r#""\u87f9""#
+            ).unwrap();
+            assert_eq!(s.as_str(), "蟹");
+        }
+        {
+            let s = serde_json::from_str::<CappedString<2>>(
+                r#""\u87f9""#
+            );
+            assert!(s.is_err());
+        }
+    }
 
     #[test]
     fn test_capped_string_uppercase() {
@@ -247,8 +381,8 @@ mod tests {
             assert_eq!(s2.as_str(), "HELLO");
         }
         {
-            let s1 = CappedString::<5>::from_str("hello").unwrap();
-            assert!(s1.to_uppercase::<4>().is_none());
+            let s = CappedString::<5>::from_str("hello").unwrap();
+            assert!(s.to_uppercase::<4>().is_none());
         }
         {
             let s1 = CappedString::<5>::from_str("groß").unwrap();
