@@ -12,7 +12,45 @@ use crate::{CASE_INSENSITIVE, CRATE_ATTR, IGNORE, NAME, OTHER};
 
 #[derive(Clone)]
 pub(crate) struct Enum<'a> {
-    pub(crate) variants: Vec<Variant<'a>>,
+    variants: Box<[Variant<'a>]>,
+    name_capacity: usize,
+    name_upper_capacity: usize,
+}
+
+impl<'a> Enum<'a> {
+    pub(crate) fn new(variants: Box<[Variant<'a>]>) -> Self {
+        let name_capacity = variants
+            .iter()
+            .filter_map(|v| v.v_type.as_named())
+            .map(|named| named.name().len())
+            .max()
+            .unwrap_or(0);
+
+        let name_upper_capacity = variants
+            .iter()
+            .filter_map(|v| v.v_type.as_named())
+            .map(|named| named.name_upper().len())
+            .max()
+            .unwrap_or(0);
+
+        Self {
+            variants,
+            name_capacity,
+            name_upper_capacity,
+        }
+    }
+
+    pub(crate) fn variants(&self) -> &[Variant<'a>] {
+        &self.variants
+    }
+
+    pub(crate) fn name_capacity(&self) -> usize {
+        self.name_capacity
+    }
+
+    pub(crate) fn name_upper_capacity(&self) -> usize {
+        self.name_upper_capacity
+    }
 }
 
 #[derive(Clone)]
@@ -25,14 +63,69 @@ pub(crate) struct Variant<'a> {
 #[derive(Clone)]
 pub(crate) enum VariantType<'a> {
     Ignore,
-    Named {
-        name: String,
+    Named(NamedVariant),
+    Other(OtherVariant<'a>),
+}
+
+impl<'a> VariantType<'a> {
+    pub(crate) fn as_named(&self) -> Option<&NamedVariant> {
+        match self {
+            Self::Named(named) => Some(named),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct NamedVariant {
+    name: Box<str>,
+    name_upper: Box<str>,
+    constructor: VariantConstructor,
+    case_insensitive: bool,
+}
+
+impl NamedVariant {
+    pub(crate) fn new(
+        name: Box<str>,
         constructor: VariantConstructor,
-        case_insensitive: bool,
-    },
-    Other {
-        field_name: Option<&'a Ident>,
-    },
+        case_insensitive: bool
+    ) -> Self
+    {
+        let name_upper = char_wise_uppercase(&name);
+        Self {
+            name,
+            name_upper,
+            constructor,
+            case_insensitive,
+        }
+    }
+    
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn name_upper(&self) -> &str {
+        &self.name_upper
+    }
+
+    pub(crate) fn constructor(&self) -> VariantConstructor {
+        self.constructor   
+    }
+
+    pub(crate) fn case_insensitive(&self) -> bool {
+        self.case_insensitive
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct OtherVariant<'a> {
+    field_name: Option<&'a Ident>,
+}
+
+impl<'a> OtherVariant<'a> {
+    pub(crate) fn field_name(&self) -> Option<&'a Ident> {
+        self.field_name
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -58,20 +151,18 @@ impl<'a> Variant<'a> {
         match &self.v_type {
             VariantType::Ignore => Ok(None),
 
-            VariantType::Named {
-                name, constructor, ..
-            } => {
-                let constructor_tokens = constructor.empty();
+            VariantType::Named(named) => {
+                let constructor_tokens = named.constructor().empty_toks();
                 let pattern = quote! { #enum_ident::#variant_ident #constructor_tokens };
-                Ok(Some((pattern, named_fn(self, enum_ident, name)?)))
+                Ok(Some((pattern, named_fn(self, enum_ident, named.name())?)))
             }
 
-            VariantType::Other { field_name } => {
-                let field_name_tokens = match field_name {
+            VariantType::Other(other) => {
+                let field_name_tokens = match other.field_name() {
                     Some(field_name) => field_name.to_token_stream(),
                     None => quote! { __enumscribe_other_inner },
                 };
-                let pattern = match field_name {
+                let pattern = match other.field_name() {
                     Some(_) => quote! { #enum_ident::#variant_ident{#field_name_tokens} },
                     None => quote! { #enum_ident::#variant_ident(#field_name_tokens) },
                 };
@@ -85,7 +176,7 @@ impl<'a> Variant<'a> {
 }
 
 impl VariantConstructor {
-    pub(crate) fn empty(&self) -> TokenStream2 {
+    pub(crate) fn empty_toks(&self) -> TokenStream2 {
         match self {
             VariantConstructor::None => quote! {},
             VariantConstructor::Paren => quote! { () },
@@ -220,7 +311,7 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
 
             Variant {
                 data: variant,
-                v_type: VariantType::Other { field_name },
+                v_type: VariantType::Other(OtherVariant { field_name }),
                 span: variant_span,
             }
         } else {
@@ -279,13 +370,12 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
                 Fields::Unit => VariantConstructor::None,
             };
 
+            let named = NamedVariant::new(name.into_boxed_str(), constructor, case_insensitive);
+            let v_type = VariantType::Named(named);
+
             Variant {
                 data: variant,
-                v_type: VariantType::Named {
-                    name,
-                    constructor,
-                    case_insensitive,
-                },
+                v_type,
                 span: variant_span,
             }
         };
@@ -293,5 +383,13 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
         variants.push(scribe_variant);
     }
 
-    Ok(Enum { variants })
+    Ok(Enum::new(variants.into_boxed_slice()))
+}
+
+fn char_wise_uppercase(s: &str) -> Box<str> {
+    // Use the same uppercase algorithm as `enumscribe::internal::capped_string`.
+    s.chars()
+        .flat_map(char::to_uppercase)
+        .collect::<String>()
+        .into_boxed_str()
 }

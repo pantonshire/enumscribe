@@ -21,6 +21,37 @@ impl<'a, const N: usize> CowCappedString<'a, N> {
             CowCappedString::Owned(s) => s,
         }
     }
+
+    /// Returns a new `CappedString` with capacity `M` containing the string converted to
+    /// uppercase. Returns `None` if the uppercase-converted string is longer than `M` bytes.
+    #[inline]
+    #[must_use]
+    pub fn to_uppercase<const M: usize>(&self) -> Option<CappedString<M>> {
+        CappedString::<M>::uppercase_from_str(self)
+    }
+}
+
+impl<'a, const N: usize> Deref for CowCappedString<'a, N> {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+impl<'a, const N: usize> AsRef<str> for CowCappedString<'a, N> {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
+impl<'a, const N: usize> Borrow<str> for CowCappedString<'a, N> {
+    #[inline]
+    fn borrow(&self) -> &str {
+        self
+    }
 }
 
 #[cfg(feature = "serde")]
@@ -86,16 +117,45 @@ pub struct CappedString<const N: usize> {
 }
 
 impl<const N: usize> CappedString<N> {
-    /// Returns a new `CappedString` containing a copy of the given string data. Returns an error
-    /// if the string data is larger than `N` bytes.
+    /// Returns a new `CappedString` containing a copy of the given string data. Returns `None` if
+    /// the string data is larger than `N` bytes.
     #[inline]
     #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         unsafe { Self::from_utf8_unchecked(s.as_bytes()) }
     }
 
+    /// Returns a new `CappedString` containing an uppercase conversion of the given string data.
+    /// Returns `None` if the converted string is larger than `N` bytes.
+    #[inline]
+    #[must_use]
+    pub fn uppercase_from_str(s: &str) -> Option<Self> {
+        let mut buf = [0u8; N];
+        let mut cursor = 0usize;
+
+        for c_orig in s.chars() {
+            for c_upper in c_orig.to_uppercase() {
+                let encode_buf = cursor
+                    .checked_add(c_upper.len_utf8())
+                    .and_then(|encode_buf_end| buf.get_mut(cursor..encode_buf_end))?;
+
+                // FIXME: avoid the panic asm that gets generated for this encode (can never panic,
+                // as we always have at least `c_upper.len_utf8()` buffer space).
+                let encoded = c_upper.encode_utf8(encode_buf);
+                cursor = cursor.checked_add(encoded.len())?;
+            }
+        }
+
+        let filled_buf = buf.get(..cursor)?;
+
+        // SAFETY:
+        // `filled_buf` has been filled with a sequence of bytes obtained from `char::encode_utf8`,
+        // so it is valid UTF-8.
+        unsafe { Self::from_utf8_unchecked(filled_buf) }
+    }
+
     /// Returns a new `CappedString` containing a copy of the given UTF-8 encoded string data.
-    /// Returns an error if more than `N` bytes of data are given.
+    /// Returns `None` if more than `N` bytes of data are given.
     /// 
     /// # Safety
     /// - `bs` must be valid UTF-8.
@@ -146,32 +206,11 @@ impl<const N: usize> CappedString<N> {
     }
 
     /// Returns a new `CappedString` with capacity `M` containing the string converted to
-    /// uppercase. Returns an error if the uppercase-converted string is longer than `M` bytes.
+    /// uppercase. Returns `None` if the uppercase-converted string is longer than `M` bytes.
     #[inline]
     #[must_use]
     pub fn to_uppercase<const M: usize>(&self) -> Option<CappedString<M>> {
-        let mut buf = [0u8; M];
-        let mut cursor = 0usize;
-
-        for c_orig in self.as_str().chars() {
-            for c_upper in c_orig.to_uppercase() {
-                let encode_buf = cursor
-                    .checked_add(c_upper.len_utf8())
-                    .and_then(|encode_buf_end| buf.get_mut(cursor..encode_buf_end))?;
-
-                // FIXME: avoid the panic asm that gets generated for this encode (can never panic,
-                // as we always have at least `c_upper.len_utf8()` buffer space).
-                let encoded = c_upper.encode_utf8(encode_buf);
-                cursor = cursor.checked_add(encoded.len())?;
-            }
-        }
-
-        let filled_buf = buf.get(..cursor)?;
-
-        // SAFETY:
-        // `filled_buf` has been filled with a sequence of bytes obtained from `char::encode_utf8`,
-        // so it is valid UTF-8.
-        unsafe { CappedString::from_utf8_unchecked(filled_buf) }
+        CappedString::<M>::uppercase_from_str(self)
     }
 }
 
