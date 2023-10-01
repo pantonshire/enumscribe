@@ -12,6 +12,7 @@ keywords = ["enum", "derive", "serde"]
 
 [dependencies]
 enumscribe_derive = { version = "0.3.0", path = "../enumscribe_derive", default-features = false, optional = true }
+serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -21,4 +22,5 @@ serde_json = "1.0"
 default = ["std", "derive", "derive_serde"]
 std = ["enumscribe_derive/std"]
 derive = ["enumscribe_derive"]
-derive_serde = ["derive", "enumscribe_derive/serde"]
+derive_serde = ["derive", "serde", "enumscribe_derive/serde"]
+serde = ["derive_serde", "dep:serde"]

@@ -59,9 +59,9 @@ where
 
     let enum_ident = &input.ident;
 
-    let mut match_arms = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_arms = Vec::with_capacity(parsed_enum.variants().len());
 
-    for variant in parsed_enum.variants.iter() {
+    for variant in parsed_enum.variants().iter() {
         match variant.match_variant(enum_ident, &named_fn, &other_fn) {
             Ok(Some((pattern, result))) => match_arms.push(quote! { #pattern => #result }),
             Ok(None) => return ignore_err_fn(variant, enum_ident).into(),
@@ -102,9 +102,9 @@ where
     let enum_ident = &input.ident;
 
     let mut ignore_variant = false;
-    let mut match_arms = Vec::with_capacity(parsed_enum.variants.len());
+    let mut match_arms = Vec::with_capacity(parsed_enum.variants().len());
 
-    for variant in parsed_enum.variants.iter() {
+    for variant in parsed_enum.variants().iter() {
         match variant.match_variant(enum_ident, &named_fn, &other_fn) {
             Ok(Some((pattern, result))) => match_arms.push(quote! { #pattern => #result }),
             Ok(None) => ignore_variant = true,
@@ -192,30 +192,28 @@ where
     let mut case_sensitive_arms = Vec::new();
     let mut case_insensitive_arms = Vec::new();
 
-    for variant in parsed_enum.variants.iter() {
+    for variant in parsed_enum.variants().iter() {
         let variant_ident = &variant.data.ident;
 
         match &variant.v_type {
             VariantType::Ignore => (),
 
-            VariantType::Named {
-                name,
-                constructor,
-                case_insensitive,
-            } => {
-                let match_pattern = if *case_insensitive {
-                    let lowercase_name = name.to_lowercase();
-                    quote! { #lowercase_name }
+            VariantType::Named(named) => {
+                let match_pattern = if named.case_insensitive() {
+                    let uppercase_name = named.name_upper();
+                    quote! { #uppercase_name }
                 } else {
+                    let name = named.name();
                     quote! { #name }
                 };
 
-                let constructor_tokens = constructor.empty();
-                let constructed_variant =
-                    quote! { #enum_ident::#variant_ident #constructor_tokens };
+                let constructor_tokens = named.constructor().empty_toks();
+                let constructed_variant = quote! {
+                    #enum_ident::#variant_ident #constructor_tokens
+                };
                 let match_result = named_fn(constructed_variant);
 
-                if *case_insensitive {
+                if named.case_insensitive() {
                     &mut case_insensitive_arms
                 } else {
                     &mut case_sensitive_arms
@@ -223,11 +221,11 @@ where
                 .push(quote! { #match_pattern => #match_result });
             }
 
-            VariantType::Other { field_name } => {
+            VariantType::Other(other) => {
                 let unscribe_value =
                     quote! { <_ as ::std::convert::Into<_>>::into(#match_against) };
 
-                let constructed_variant = match field_name {
+                let constructed_variant = match other.field_name() {
                     None => quote! {
                         #enum_ident::#variant_ident(#unscribe_value)
                     },
@@ -251,10 +249,23 @@ where
     let case_insensitive_match = if case_insensitive_arms.is_empty() {
         None
     } else {
+        let match_against_upper_ident = quote! { __enumscribe_unscribe_uppercase };
+        let name_upper_cap = parsed_enum.name_upper_capacity();
+
         Some(quote! {
-            let __enumscribe_unscribe_lowercase = #match_against.to_lowercase();
-            match __enumscribe_unscribe_lowercase.as_str() {
-                #(#case_insensitive_arms,)*
+            match ::enumscribe
+                ::internal
+                ::capped_string
+                ::CappedString
+                ::<#name_upper_cap>
+                ::uppercase_from_str(#match_against)
+            {
+                Some(#match_against_upper_ident) => {
+                    match &*#match_against_upper_ident {
+                        #(#case_insensitive_arms,)*
+                        #other_arm,
+                    }
+                },
                 #other_arm,
             }
         })
@@ -659,23 +670,22 @@ pub fn derive_enum_serialize(input: TokenStream) -> TokenStream {
     let mut match_arms = Vec::new();
     let mut ignore_variant = false;
 
-    for variant in parsed_enum.variants.iter() {
+    for variant in parsed_enum.variants().iter() {
         let variant_ident = &variant.data.ident;
 
         match &variant.v_type {
             VariantType::Ignore => ignore_variant = true,
 
-            VariantType::Named {
-                name, constructor, ..
-            } => {
-                let constructor_tokens = constructor.empty();
+            VariantType::Named(named) => {
+                let constructor_tokens = named.constructor().empty_toks();
+                let name = named.name();
                 match_arms.push(quote! {
                     #enum_ident::#variant_ident #constructor_tokens =>
                         #serializer_ident.serialize_str(#name)
                 })
             }
 
-            VariantType::Other { field_name } => match field_name {
+            VariantType::Other(other) => match other.field_name() {
                 Some(field_name) => match_arms.push(quote! {
                     #enum_ident::#variant_ident { #field_name } =>
                         #serializer_ident.serialize_str(&#field_name)
@@ -748,13 +758,14 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
     let enum_ident = &input.ident;
 
     let deserializer_ident = quote! { __enumscribe_deserializer };
+    let deserialized_cow_capped_str_ident = quote! { __enumscribe_deserialized_cow_capped_str };
     let deserialized_str_ident = quote! { __enumscribe_deserialized_str };
 
     let variant_strings = parsed_enum
-        .variants
+        .variants()
         .iter()
         .map(|variant| match &variant.v_type {
-            VariantType::Named { name, .. } => Some(name.as_str()),
+            VariantType::Named(named) => Some(named.name()),
             _ => None,
         })
         .filter_map(|name| name)
@@ -771,14 +782,16 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
             ::core::result::Result::Ok(#constructed_other_variant)
         },
         |_| Ok(quote! {
-            __enumscribe_deserialize_base_case => ::core::result::Result::Err(
+            _ => ::core::result::Result::Err(
                 ::serde::de::Error::unknown_variant(
-                    __enumscribe_deserialize_base_case,
+                    #deserialized_str_ident,
                     &[#(#variant_strings),*]
                 )
             )
         }),
     ));
+
+    let name_cap = parsed_enum.name_capacity();
 
     (quote! {
         #[automatically_derived]
@@ -786,7 +799,15 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
             fn deserialize<D>(#deserializer_ident: D) -> ::core::result::Result<Self, D::Error>
                 where D: ::serde::Deserializer<'de>
             {
-                let #deserialized_str_ident = <&str as ::serde::Deserialize<'_>>::deserialize(#deserializer_ident)?;
+                let #deserialized_cow_capped_str_ident = <
+                    ::enumscribe
+                        ::internal
+                        ::capped_string
+                        ::CowCappedString<'de, #name_cap>
+                    as ::serde::Deserialize<'_>
+                >::deserialize(#deserializer_ident)?;
+
+                let #deserialized_str_ident = &*#deserialized_cow_capped_str_ident;
                 #main_match
             }
         }
