@@ -782,9 +782,9 @@ pub fn derive_enum_deserialize(input: TokenStream) -> TokenStream {
             ::core::result::Result::Ok(#constructed_other_variant)
         },
         |_| Ok(quote! {
-            __enumscribe_deserialize_base_case => ::core::result::Result::Err(
+            _ => ::core::result::Result::Err(
                 ::serde::de::Error::unknown_variant(
-                    __enumscribe_deserialize_base_case,
+                    #deserialized_str_ident,
                     &[#(#variant_strings),*]
                 )
             )
