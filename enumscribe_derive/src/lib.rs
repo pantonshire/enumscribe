@@ -19,6 +19,7 @@ use crate::enums::{Enum, Variant, VariantType};
 mod attribute;
 mod enums;
 mod error;
+mod rename;
 
 const CRATE_ATTR: &'static str = "enumscribe";
 
