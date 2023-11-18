@@ -36,7 +36,7 @@ impl MacroError {
     pub(crate) fn to_token_stream2(&self) -> TokenStream2 {
         let message = &self.message;
         quote_spanned! {
-            self.span => ::std::compile_error!(#message);
+            self.span => ::core::compile_error!(#message);
         }
     }
 }
