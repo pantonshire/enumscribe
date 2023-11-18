@@ -3,11 +3,11 @@
 
 use core::{str, ops::Deref, borrow::Borrow, fmt};
 
-/// TODO: documentation
+/// A string type which is either borrowed or stores up to `N` bytes of string data inline.
 pub enum CowCappedString<'a, const N: usize> {
-    /// TODO: documentation
+    /// A reference to string data stored elsewhere.
     Borrowed(&'a str),
-    /// TODO: documentation
+    /// The string data is stored inline.
     Owned(CappedString<N>),
 }
 
