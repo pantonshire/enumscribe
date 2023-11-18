@@ -20,7 +20,7 @@ impl RenameVariant {
         match s {
             "lowercase" => Ok(Self::Lower),
             "UPPERCASE" => Ok(Self::Upper),
-            "PascalCase" => Ok(Self::Upper),
+            "PascalCase" => Ok(Self::Pascal),
             "camelCase" => Ok(Self::Camel),
             "snake_case" => Ok(Self::Snake),
             "SCREAMING_SNAKE_CASE" => Ok(Self::ScreamingSnake),

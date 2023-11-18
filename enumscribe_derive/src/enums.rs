@@ -7,8 +7,9 @@ use syn::{DataEnum, Fields, Attribute};
 
 use crate::attribute::{Dict, Value};
 use crate::error::{MacroError, MacroResult};
+use crate::rename::RenameVariant;
 use crate::{TokenStream2, CASE_SENSITIVE};
-use crate::{CASE_INSENSITIVE, CRATE_ATTR, IGNORE, NAME, OTHER};
+use crate::{CASE_INSENSITIVE, RENAME, RENAME_ALL, CRATE_ATTR, IGNORE, NAME, OTHER};
 
 #[derive(Clone)]
 pub(crate) struct Enum<'a> {
@@ -192,19 +193,20 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
     let mut taken_sensitive_names = HashSet::new();
     let mut other_variant = false;
 
-    let global_case_insensitive = {
-        let mut dict = Dict::from_attrs(CRATE_ATTR, attrs)?;
+    let mut global_dict = Dict::from_attrs(CRATE_ATTR, attrs)?;
+    
+    let (global_case_insensitive, _) = global_dict.remove_typed_or_default(
+        CASE_INSENSITIVE,
+        (false, data.enum_token.span()),
+        Value::value_bool,
+    )?;
 
-        let (global_case_insensitive, _) = dict.remove_typed_or_default(
-            CASE_INSENSITIVE,
-            (false, data.enum_token.span()),
-            Value::value_bool,
-        )?;
+    let global_rename = global_dict.remove_typed(RENAME_ALL, Value::value_string)?
+        .map(|(global_rename, span)| RenameVariant::from_str(&global_rename, span))
+        .transpose()?;
 
-        dict.assert_empty()?;
-
-        global_case_insensitive
-    };
+    global_dict.assert_empty()?;
+    drop(global_dict);
 
     for variant in data.variants.iter() {
         let variant_span = variant.span();
@@ -213,10 +215,7 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
         let mut dict = Dict::from_attrs(CRATE_ATTR, &variant.attrs)?;
 
         // Convert the values in the Dict to the appropriate types
-        let name_opt = dict.remove_typed(
-            NAME,
-            Value::value_string
-        )?;
+        let name_opt = dict.remove_typed(NAME, Value::value_string)?;
         
         let (other, other_span) = dict.remove_typed_or_default(
             OTHER,
@@ -256,6 +255,11 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
                 ))
             }
         };
+
+        let rename = dict.remove_typed(RENAME, Value::value_string)?
+            .map(|(rename, span)| RenameVariant::from_str(&rename, span))
+            .transpose()?
+            .or(global_rename);
 
         // Return an error if there are any unrecognised keys in the Dict
         dict.assert_empty()?;
@@ -318,7 +322,14 @@ pub(crate) fn parse_enum<'a>(data: &'a DataEnum, attrs: &'a [Attribute]) -> Macr
             // Use the str name if one is provided, otherwise use the variant's name
             let (name, name_span) = match name_opt {
                 Some((name, name_span)) => (name, name_span),
-                None => (variant.ident.to_string(), variant.ident.span()),
+                None => {
+                    let name_span = variant.ident.span();
+                    let mut name = variant.ident.to_string();
+                    if let Some(rename) = rename {
+                        name = rename.apply(&name);
+                    }
+                    (name, name_span)
+                },
             };
 
             // Do not allow duplicate names

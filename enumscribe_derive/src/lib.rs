@@ -28,6 +28,8 @@ const OTHER: &'static str = "other";
 const IGNORE: &'static str = "ignore";
 const CASE_INSENSITIVE: &'static str = "case_insensitive";
 const CASE_SENSITIVE: &'static str = "case_sensitive";
+const RENAME: &'static str = "rename";
+const RENAME_ALL: &'static str = "rename_all";
 
 type TokenStream2 = proc_macro2::TokenStream;
 
